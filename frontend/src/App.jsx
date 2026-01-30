@@ -16,12 +16,24 @@ export default function App() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null); // User state
   const [checkInEventId, setCheckInEventId] = useState(null);
+  const [initialDashboardView, setInitialDashboardView] = useState(null);
+  const [initialDashboardEventId, setInitialDashboardEventId] = useState(null);
 
   // View State: 'landing' or 'feed' or 'auth' or 'dashboard'
   const [currentView, setCurrentView] = useState('landing');
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
 
   useEffect(() => {
+    // Parse query params for deep linking
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    const eventId = params.get('eventId');
+
+    if (view === 'ticket-details' && eventId) {
+      setInitialDashboardView('ticket-details');
+      setInitialDashboardEventId(eventId);
+    }
+
     fetchEvents();
     checkUserSession();
   }, []);
@@ -71,6 +83,12 @@ export default function App() {
         // For now, let's keep landing unless explicitly logged in, OR 
         // if the user refreshes on Dashboard? 
         // Let's rely on explicit navigation for now, but handle login redirection below.
+        
+        // Handle Deep Linking Redirect
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('view') === 'ticket-details') {
+            setCurrentView('dashboard');
+        }
       } else {
         localStorage.removeItem('token');
       }
@@ -164,6 +182,8 @@ export default function App() {
                 setCurrentView(view);
               }
             }}
+            initialView={initialDashboardView}
+            initialEventId={initialDashboardEventId}
           />
         </ErrorBoundary>
       )}

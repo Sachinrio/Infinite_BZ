@@ -596,7 +596,7 @@ async def register_for_event(
     # Generate a Self-Verified Confirmation ID
     import time
     from app.services.ticket_service import generate_ticket_pdf
-    from app.core.email_utils import send_ticket_email
+    from app.core.email_utils import send_ticket_email, send_organizer_notification_email
     
     confirmation_id = f"SELF-{int(time.time())}"
 
@@ -610,47 +610,60 @@ async def register_for_event(
     session.add(new_reg)
     await session.commit()
     
-    # --- NEW: Phase 1 Ticket Generation ---
-    # --- NEW: Phase 1 Ticket Generation ---
-    try:
-        # 1. Generate PDF
-        ticket_path = generate_ticket_pdf(
-            registration_id=confirmation_id,
-            event_title=event.title,
-            user_name=current_user.full_name or current_user.email,
-            event_date=event.start_time,
-            event_location=event.venue_name or "Online"
-        )
-        
-        # 2. Send Email (BACKGROUND TASK)
-        # We pass the async function send_ticket_email to background_tasks
-        background_tasks.add_task(
-            send_ticket_email,
-            email=current_user.email,
-            name=current_user.full_name or "Attendee",
-            event_title=event.title,
-            ticket_path=ticket_path
-        )
-        
-        email_status = "QUEUED_IN_BACKGROUND"
-        
-    except Exception as e:
-        print(f"Ticket Gen Error: {str(e)}")
-        email_status = f"ERROR: {str(e)}"
+    # Check if Eventbrite/External
+    is_eventbrite = event.url and "eventbrite" in event.url.lower()
+    email_status = "SKIPPED_EXTERNAL"
+    email_sent = False
 
-    # Send QR code and PDF via email after successful registration
-    event_data = {
-        "id": event.id,
-        "title": event.title,
-        "start_time": event.start_time.strftime('%Y-%m-%d %H:%M %p'),
-        "venue_name": event.venue_name,
-        "organizer_name": event.organizer_name
-    }
-    email_sent = await send_event_ticket_email(current_user.email, event_data, confirmation_id, user_name=current_user.full_name)
+    if not is_eventbrite:
+        # --- NEW: Phase 1 Ticket Generation ---
+        # --- NEW: Phase 1 Ticket Generation ---
+        try:
+            # 1. Generate PDF
+            ticket_path = generate_ticket_pdf(
+                registration_id=confirmation_id,
+                event_title=event.title,
+                user_name=current_user.full_name or current_user.email,
+                user_email=current_user.email,
+                event_date=event.start_time,
+                event_location=event.venue_name or "Online"
+            )
+            
+            # 2. Send Email (BACKGROUND TASK)
+            # We pass the async function send_ticket_email to background_tasks
+            background_tasks.add_task(
+                send_ticket_email,
+                email=current_user.email,
+                name=current_user.full_name or "Attendee",
+                event_title=event.title,
+                event_id=event.id
+            )
+
+            # 3. Send Notification Email to Organizer/Sender (BACKGROUND TASK)
+            background_tasks.add_task(
+                send_organizer_notification_email,
+                email=current_user.email, # Argument unused by function but good for logging if updated
+                organizer_name=event.organizer_name,
+                attendee_name=current_user.full_name or "Attendee",
+                attendee_email=current_user.email,
+                event_title=event.title,
+                event_date=event.start_time.strftime('%B %d, %Y @ %I:%M %p'),
+                ticket_path=ticket_path
+            )
+            
+            email_status = "QUEUED_IN_BACKGROUND"
+            email_sent = True
+            
+        except Exception as e:
+            print(f"Ticket Gen Error: {str(e)}")
+            email_status = f"ERROR: {str(e)}"
+            email_sent = False
 
     message = "Registration verified and saved!"
     if email_sent:
         message += " Event ticket sent to your email."
+    elif is_eventbrite:
+         message += " (External Registration Recorded)"
     else:
         message += " (Note: Email sending is not configured.)"
 
@@ -828,9 +841,84 @@ async def get_user_registrations(
             registered_events.append(event_data)
 
     return {
-        "registrations": registered_events,
-        "total": len(registered_events)
+        "status": "success",
+        "message": "User registrations retrieved",
+        "registrations": registered_events
     }
+
+@router.get("/user/registrations/{event_id}/pdf")
+async def download_ticket_pdf(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Generates and returns the PDF ticket for a specific registration.
+    """
+    from fastapi.responses import FileResponse
+    from app.services.ticket_service import generate_ticket_pdf
+    
+    # 1. Find the registration
+    stmt = select(UserRegistration).where(
+        UserRegistration.user_email == current_user.email,
+        UserRegistration.event_id == event_id,
+        UserRegistration.status == "SUCCESS"
+    )
+    result = await session.execute(stmt)
+    registration = result.scalars().first()
+    
+    if not registration:
+        raise HTTPException(status_code=404, detail="Registration not found")
+        
+    # 2. Get Event Details
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    # 3. Generate PDF (Regenerate on demand)
+    try:
+        ticket_path = generate_ticket_pdf(
+            registration_id=registration.confirmation_id,
+            event_title=event.title,
+            user_name=current_user.full_name or current_user.email,
+            user_email=current_user.email,
+            event_date=event.start_time,
+            event_location=event.venue_name or "Online"
+        )
+        return FileResponse(ticket_path, media_type='application/pdf', filename=f"ticket_{event_id}.pdf")
+    except Exception as e:
+        print(f"PDF Gen Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate ticket PDF")
+
+
+# --- 7. FOLLOWING SYSTEM ENDPOINTS ---
+
+@router.delete("/user/registrations/{event_id}")
+async def cancel_registration(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Cancels a user's registration for a specific event.
+    """
+    # 1. Check if registration exists
+    stmt = select(UserRegistration).where(
+        UserRegistration.user_email == current_user.email,
+        UserRegistration.event_id == event_id,
+        UserRegistration.status == "SUCCESS"
+    )
+    result = await session.execute(stmt)
+    registration = result.scalars().first()
+    
+    if not registration:
+        raise HTTPException(status_code=404, detail="Registration not found")
+        
+    # 2. Delete the registration
+    await session.delete(registration)
+    await session.commit()
+    
+    return {"status": "success", "message": "Registration cancelled successfully"}
 
 # --- 7. FOLLOWING SYSTEM ENDPOINTS ---
 
