@@ -13,7 +13,7 @@ import EventTicketPage from './EventTicketPage';
 import NotificationsPage from './NotificationsPage';
 import Sidebar from './Sidebar';
 
-export default function Dashboard({ user, onLogout, onNavigate }) {
+export default function Dashboard({ user, onLogout, onNavigate, initialView, initialEventId }) {
     const [stats, setStats] = useState({
         total_users: 0,
         active_events: 0,
@@ -49,7 +49,13 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         fetchDashboardStats();
         fetchUserRegistrations(); // Fetch existing registrations to show registered status
         fetchUserActivities(); // Fetch user activities for notifications
-    }, []);
+
+        // Handle Deep Linking
+        if (initialView === 'ticket-details' && initialEventId) {
+            setSelectedTicketEventId(initialEventId);
+            setActiveView('ticket-details');
+        }
+    }, [initialView, initialEventId]);
 
     // Apply chatbot filters to UI states
     useEffect(() => {

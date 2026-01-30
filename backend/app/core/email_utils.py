@@ -80,9 +80,9 @@ async def send_reset_email(email: EmailStr, otp: str):
         print(f"EXTREME ERROR: Failed to send email via SMTP: {e}")
         return False
 
-async def send_ticket_email(email: EmailStr, name: str, event_title: str, ticket_path: str):
+async def send_ticket_email(email: EmailStr, name: str, event_title: str, event_id: int):
     """
-    Sends the PDF Ticket via Real SMTP using fastapi-mail.
+    Sends the Ticket Email via Real SMTP using fastapi-mail.
     """
     if not ENABLE_EMAIL:
         print(f"FAILED TO SEND TICKET to {email}: Email credentials not configured.")
@@ -94,11 +94,13 @@ async def send_ticket_email(email: EmailStr, name: str, event_title: str, ticket
         <html>
             <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
                 <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
-                    <h2 style="color: #0F172A;">Your Ticket for {event_title}</h2>
+                    <h2 style="color: #0F172A;">Successfully Registered: {event_title}</h2>
                     <p>Hi {name},</p>
                     <p>Thank you for registering! We are excited to see you.</p>
-                    <p><strong>Please find your official ticket attached to this email.</strong></p>
-                    <p>Simply show the QR code at the entrance.</p>
+                    <br/>
+                    <div style="text-align: center;">
+                        <a href="http://localhost:5174/?view=ticket-details&eventId={event_id}" style="background-color: #38BDF8; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 5px;">Go to Ticket</a>
+                    </div>
                     <br/>
                     <p style="font-size: 12px; color: #888;">Powered by Infinite BZ Event Platform</p>
                 </div>
@@ -107,11 +109,10 @@ async def send_ticket_email(email: EmailStr, name: str, event_title: str, ticket
         """
         
         message = MessageSchema(
-            subject=f"Your Ticket for {event_title}",
+            subject=f"Successfully Registered: {event_title}",
             recipients=[email],
             body=body,
-            subtype=MessageType.html,
-            attachments=[ticket_path] # fastapi-mail handles attachments simply like this
+            subtype=MessageType.html
         )
         
         fm = FastMail(conf)

@@ -594,6 +594,7 @@ async def register_for_event(
                 registration_id=confirmation_id,
                 event_title=event.title,
                 user_name=current_user.full_name or current_user.email,
+                user_email=current_user.email,
                 event_date=event.start_time,
                 event_location=event.venue_name or "Online"
             )
@@ -605,7 +606,7 @@ async def register_for_event(
                 email=current_user.email,
                 name=current_user.full_name or "Attendee",
                 event_title=event.title,
-                ticket_path=ticket_path
+                event_id=event.id
             )
 
             # 3. Send Notification Email to Organizer/Sender (BACKGROUND TASK)
@@ -850,6 +851,7 @@ async def download_ticket_pdf(
             registration_id=registration.confirmation_id,
             event_title=event.title,
             user_name=current_user.full_name or current_user.email,
+            user_email=current_user.email,
             event_date=event.start_time,
             event_location=event.venue_name or "Online"
         )
