@@ -83,11 +83,28 @@ export default function App() {
         // For now, let's keep landing unless explicitly logged in, OR 
         // if the user refreshes on Dashboard? 
         // Let's rely on explicit navigation for now, but handle login redirection below.
-        
+
         // Handle Deep Linking Redirect
         const params = new URLSearchParams(window.location.search);
-        if (params.get('view') === 'ticket-details') {
+        const ticketView = params.get('view') === 'ticket-details';
+        const expectedEmail = params.get('email');
+
+        if (ticketView) {
+          // Security Check: If email is specified in URL, it MUST match the logged-in user (case-insensitive)
+          if (expectedEmail && userData.email.toLowerCase() !== expectedEmail.toLowerCase()) {
+            alert(`You are logged in as ${userData.email}, but this ticket belongs to ${expectedEmail}. Please log in with the correct account.`);
+
+            // Clear the sensitive initial state so it doesn't persist
+            setInitialDashboardView(null);
+            setInitialDashboardEventId(null);
+
+            localStorage.removeItem('token');
+            setUser(null);
+            setAuthMode('login');
+            setCurrentView('auth');
+          } else {
             setCurrentView('dashboard');
+          }
         }
       } else {
         localStorage.removeItem('token');

@@ -317,7 +317,7 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
                       {/* InfiniteBZ Ticket Button (and other locally registered events) */}
                       {(!event.url || !event.url.toLowerCase().includes('eventbrite')) && (
                         <button
-                          onClick={() => onNavigate('ticket-details', event.id)}
+                          onClick={() => onNavigate('ticket-details', event)}
                           className="w-full mt-4 bg-primary-500 hover:bg-primary-600 text-slate-900 font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2"
                         >
                           <QrCode size={18} />

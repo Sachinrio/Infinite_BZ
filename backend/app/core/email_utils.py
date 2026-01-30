@@ -99,7 +99,7 @@ async def send_ticket_email(email: EmailStr, name: str, event_title: str, event_
                     <p>Thank you for registering! We are excited to see you.</p>
                     <br/>
                     <div style="text-align: center;">
-                        <a href="http://localhost:5174/?view=ticket-details&eventId={event_id}" style="background-color: #38BDF8; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 5px;">Go to Ticket</a>
+                        <a href="http://localhost:5174/?view=ticket-details&eventId={event_id}&email={email}" style="background-color: #38BDF8; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 5px;">Go to Ticket</a>
                     </div>
                     <br/>
                     <p style="font-size: 12px; color: #888;">Powered by Infinite BZ Event Platform</p>
@@ -367,6 +367,10 @@ async def send_event_ticket_email(email: EmailStr, event_data: dict, confirmatio
                         <p>Your event ticket is attached as a PDF. Please bring this ticket to the event.</p>
                         <p>You can also scan the QR code below:</p>
                         <img src="data:image/png;base64,{qr_base64}" alt="QR Code" style="max-width: 200px;" />
+                        <br/>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <a href="http://localhost:5174/?view=ticket-details&eventId={event_data.get('id', '')}&email={email}" style="background-color: #38BDF8; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 5px;">Go to Ticket</a>
+                        </div>
                         <p style="font-size: 12px; color: #888;">Please bring this to the event.</p>
                     </div>
                 </body>

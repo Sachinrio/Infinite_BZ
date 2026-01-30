@@ -41,6 +41,11 @@ export default function EventTicketPage({ eventId, onNavigate, onCancelSuccess, 
                 const data = await res.json();
                 setQrCode(data.qr_code);
                 setTicketId(data.confirmation_id);
+            } else {
+                if (res.status === 403 || res.status === 404) {
+                    alert("You cancelled the order");
+                    onNavigate('feed');
+                }
             }
         } catch (err) {
             console.error('Error fetching QR code:', err);

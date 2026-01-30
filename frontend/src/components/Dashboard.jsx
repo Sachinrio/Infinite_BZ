@@ -13,7 +13,7 @@ import NotificationsPage from './NotificationsPage';
 import Sidebar from './Sidebar';
 import EventTicketPage from './EventTicketPage';
 
-export default function Dashboard({ user, onLogout, onNavigate }) {
+export default function Dashboard({ user, onLogout, onNavigate, initialView, initialEventId }) {
     const [stats, setStats] = useState({
         total_users: 0,
         active_events: 0,
@@ -39,7 +39,15 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [selectedDate, setSelectedDate] = useState(""); // YYYY-MM-DD
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [activeView, setActiveView] = useState('feed'); // 'feed' or 'my-events' or 'my-registrations' or 'notifications'
+
+    // Initialize activeView based on prop or default to 'feed'
+    // Map 'ticket-details' from URL to 'ticket' view in Dashboard
+    const [activeView, setActiveView] = useState(initialView === 'ticket-details' ? 'ticket' : (initialView || 'feed'));
+
+    // Initialize selectedInternalEvent if deep linking to a ticket
+    // Note: We only have the ID here, so we might need to fetch the full event details in EventTicketPage or temporarily create a shell object
+    const [selectedInternalEvent, setSelectedInternalEvent] = useState(initialEventId ? { id: initialEventId } : null);
+
     const [userActivities, setUserActivities] = useState([]);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
     const [chatbotFilters, setChatbotFilters] = useState({}); // For chatbot-driven filters
@@ -215,7 +223,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCreateEventModal, setShowCreateEventModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
-    const [selectedInternalEvent, setSelectedInternalEvent] = useState(null);
+
 
     const [pendingEventId, setPendingEventId] = useState(null);
     const [pendingEventTitle, setPendingEventTitle] = useState("");
@@ -393,14 +401,24 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                 {activeView === 'my-events' ? (
                     <MyEvents onCreateNew={() => onNavigate('create-event')} />
                 ) : activeView === 'my-registrations' ? (
-                    <MyRegistrationsPage onNavigate={() => setActiveView('feed')} user={user} />
+                    <MyRegistrationsPage
+                        onNavigate={(view, data) => {
+                            if (view === 'ticket-details') {
+                                setSelectedInternalEvent(data);
+                                setActiveView('ticket');
+                            } else {
+                                setActiveView('feed');
+                            }
+                        }}
+                        user={user}
+                    />
                 ) : activeView === 'notifications' ? (
                     <NotificationsPage notifications={userActivities} />
                 ) : activeView === 'ticket' ? (
                     <EventTicketPage
-                        event={selectedInternalEvent}
+                        eventId={selectedInternalEvent?.id}
                         user={user}
-                        onBack={() => setActiveView('my-registrations')}
+                        onNavigate={(view) => setActiveView(view)}
                     />
                 ) : (
                     <>
