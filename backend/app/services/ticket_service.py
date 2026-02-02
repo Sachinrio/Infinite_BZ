@@ -19,7 +19,7 @@ def generate_qr(data: str, filename: str) -> str:
     img.save(path)
     return path
 
-def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, event_date: datetime, event_location: str) -> str:
+def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, user_email: str, event_date: datetime, event_location: str) -> str:
     """
     Generates a PDF ticket for the given registration details.
     Returns the absolute path to the generated PDF.
@@ -69,8 +69,10 @@ def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, 
     c.drawString(0.5*inch, height - 4.6*inch, f"Ticket ID: {registration_id}")
     
     # 6. QR Code Generation
+    # Construct rich QR data to match web view
+    qr_data = f"Ticket ID: {registration_id}\nEvent: {event_title}\nUser: {user_email}\nValid: {event_date.strftime('%Y-%m-%d %H:%M %p')}"
     qr_filename = f"qr_{registration_id}.png"
-    qr_path = generate_qr(registration_id, qr_filename)
+    qr_path = generate_qr(qr_data, qr_filename)
     
     # 7. Draw QR Code
     c.drawImage(qr_path, width - 2.5*inch, height - 4.5*inch, width=2*inch, height=2*inch)

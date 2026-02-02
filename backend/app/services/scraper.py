@@ -6,12 +6,13 @@ from typing import List, Dict, Optional
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 import urllib.parse
+from app.services.scrapers.utils import is_business_event
 
 # --- CONSTANTS ---
 BASE_URL = "https://www.eventbrite.com"
 EVENTBRITE_API_TOKEN = "T6WRADHDNPM5S4VYLFR5"
 
-def fetch_event_details_api(event_id: str) -> Optional[Dict]:
+def fetch_event_details_api(event_id: str, fallback_image: str = None) -> Optional[Dict]:
     """
     Fetches event details (title, start/end time, is_free, venue) from Eventbrite API.
     Returns a dict with cleaned data or None if failed.
@@ -89,6 +90,21 @@ def fetch_event_details_api(event_id: str) -> Optional[Dict]:
             desc_obj = data.get("description") or {}
             logo_obj = data.get("logo") or {}
 
+            logo_url = logo_obj.get("url")
+            
+            # Use fallback image if API has no logo or API gives a placeholder
+            if not logo_url or "placeholder" in logo_url.lower():
+                logo_url = fallback_image
+
+            if not logo_url or "placeholder" in logo_url.lower():
+                image_pool = [
+                    "https://images.unsplash.com/photo-1540575861501-7cf05a4b125a?q=80&w=1000&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1505373630103-89d00c2a5851?q=80&w=1000&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=1000&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1000&auto=format&fit=crop"
+                ]
+                logo_url = image_pool[abs(hash(name_obj.get("text", ""))) % len(image_pool)]
+
             return {
                 "title": name_obj.get("text", "Untitled Event"),
                 "description": desc_obj.get("text", ""),
@@ -100,7 +116,7 @@ def fetch_event_details_api(event_id: str) -> Optional[Dict]:
                 "venue_address": venue_address,
                 "organizer_name": organizer_name,
                 "url": data.get("url"),
-                "logo_url": logo_obj.get("url")
+                "logo_url": logo_url
             }
         else:
             print(f"API Error for {event_id}: {response.status_code} - {response.text}")
@@ -115,6 +131,7 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
     to fetch accurate details for each event.
     """
     cleaned_events = []
+    seen_ids = set()
     
     # Construct Search URL
     encoded_city = urllib.parse.quote(city)
@@ -139,10 +156,10 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
             # Wait for event cards
             await page.wait_for_selector("div.event-card__details, section.event-card-details", timeout=15000)
             
-            # Scroll to load more
-            for _ in range(3):
-                await page.evaluate("window.scrollBy(0, 1000)")
-                await asyncio.sleep(random.uniform(1, 3))
+            # Scroll more to trigger lazy loading of images
+            for _ in range(5):
+                await page.evaluate("window.scrollBy(0, 1500)")
+                await asyncio.sleep(random.uniform(2, 4))
 
             # HTML Parsing just to get IDs
             content = await page.content()
@@ -168,7 +185,35 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
                     
                     if not event_id or event_id == "unknown":
                          continue 
+
+                    if event_id in seen_ids:
+                        continue
+                    seen_ids.add(event_id) 
                     
+                    
+                    # --- NEW: Extract Card Image (Aggressively) ---
+                    card_image = None
+                    try:
+                        # Find parent card for image extraction
+                        parent = card.find_parent("article") or card.find_parent("div", class_="event-card")
+                        img_tag = parent.select_one("img") if parent else soup.select_one(f"a[href*='{event_id}'] img")
+                        if img_tag:
+                            # Try multiple attributes
+                            for attr in ["data-src", "src", "srcset", "data-img", "data-event-item-image"]:
+                                val = img_tag.get(attr)
+                                if val and ("http" in val or val.startswith("//")) and "data:image" not in val:
+                                    potential_img = val.split(",")[0].split(" ")[0].strip()
+                                    if potential_img.startswith("//"):
+                                        potential_img = "https:" + potential_img
+                                    
+                                    # Filter out placeholders
+                                    if "placeholder" in potential_img.lower() or "logo" in potential_img.lower():
+                                        continue
+
+                                    card_image = potential_img
+                                    break
+                    except:
+                        pass
                     
                     # --- SCARPE FALLBACK: Organizer ---
                     scraped_organizer = "Unknown Organizer"
@@ -184,7 +229,7 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
 
                     # --- HYBRID STEP: Call API ---
                     print(f"Fetching API details for ID: {event_id}...")
-                    api_data = fetch_event_details_api(event_id)
+                    api_data = fetch_event_details_api(event_id, fallback_image=card_image)
                     
                     if api_data:
                         # Fallback for organizer
@@ -198,7 +243,7 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
                                      final_organizer = "COSMIR SOLUTIONS"
 
                         # Use API data
-                        cleaned_events.append({
+                        event_data = {
                             "eventbrite_id": event_id,
                             "title": api_data['title'],
                             "description": api_data['description'] or f"Scraped from {url}",
@@ -212,7 +257,12 @@ async def scrape_events_playwright(city: str = "chennai", category: str = "busin
                             "is_free": api_data['is_free'],
                             "online_event": api_data['online_event'],
                             "raw_data": {"source": "eventbrite_api"}
-                        })
+                        }
+                        
+                        if is_business_event(event_data):
+                            cleaned_events.append(event_data)
+                        else:
+                            print(f"  [Filtered] Non-business event: {event_data['title']}")
                     else:
                         print(f"Skipping {event_id} due to API failure.")
                         # Optional: Fallback to scraping if API fails? 

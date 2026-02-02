@@ -1,0 +1,495 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" /><meta name="keywords" /><title>
+	Chennai Trade Centre
+</title><link rel="icon" type="image/x-icon" href="assets/img/logo/favicon.png" /><link rel="stylesheet" href="assets/css/bootstrap.min.css" /><link rel="stylesheet" href="assets/css/all-fontawesome.min.css" /><link rel="stylesheet" href="assets/css/animate.min.css" /><link rel="stylesheet" href="assets/css/magnific-popup.min.css" /><link rel="stylesheet" href="assets/css/owl.carousel.min.css" /><link rel="stylesheet" href="assets/css/style.css" />
+
+    <script src="Scripts/CommonScript.js"></script>
+    <script src="Scripts/GlobalScript.js"></script>
+    <link href="assets/css/alertify.core.css" rel="stylesheet" type="text/css" /><link href="assets/css/alertify.default.css" rel="stylesheet" type="text/css" />
+    <script src="js/alertify.js" type="text/javascript"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+    <!-- Google Fonts: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&amp;display=swap" rel="stylesheet" /><link rel="stylesheet" href="style.css" />
+    <!-- Slick Slider CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" /><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
+
+    
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VRJ4Y06VEQ"></script>
+    <script>   
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', 'G-VRJ4Y06VEQ');
+
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            let navLinks = document.querySelectorAll(".navbar-nav .nav-link");
+
+            function setActiveClass(event) {
+
+                navLinks.forEach(link => link.classList.remove("active"));
+
+                event.target.classList.add("active");
+
+                localStorage.setItem("activeNavLink", event.target.getAttribute("href"));
+            }
+
+
+            navLinks.forEach(link => {
+                link.addEventListener("click", setActiveClass);
+            });
+
+
+            let activePage = localStorage.getItem("activeNavLink");
+            if (activePage) {
+                navLinks.forEach(link => {
+                    if (link.getAttribute("href") === activePage) {
+                        link.classList.add("active");
+                    }
+                });
+            }
+        });
+
+    </script>
+
+</head>
+<body class="home-2">
+    <form method="post" action="./UpcomingEvents.aspx?etype=1" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE3MzEwOTQ4NTYPZBYCZg9kFgQCAQ9kFgICBQ9kFgJmDxYCHgRUZXh0BRRDaGVubmFpIFRyYWRlIENlbnRyZWQCAw9kFh4CAw8WAh4EaHJlZgUeaHR0cHM6Ly9jaGVubmFpdHJhZGVjZW50cmUuaW4vFgICAQ8PFgIeCEltYWdlVXJsBUBodHRwczovL2NoZW5uYWl0cmFkZWNlbnRyZS5pbi8vYXNzZXRzL2ltZy9pbm5lci1pbWFnZXMvbG9nbzMucG5nZGQCBQ8PFgIfAgVAaHR0cHM6Ly9jaGVubmFpdHJhZGVjZW50cmUuaW4vL2Fzc2V0cy9pbWcvaW5uZXItaW1hZ2VzL2xvZ28zLnBuZ2RkAgkPFgIfAQUeaHR0cHM6Ly9jaGVubmFpdHJhZGVjZW50cmUuaW4vFgICAQ8PFgIfAgVAaHR0cHM6Ly9jaGVubmFpdHJhZGVjZW50cmUuaW4vL2Fzc2V0cy9pbWcvaW5uZXItaW1hZ2VzL2xvZ28zLnBuZ2RkAgsPDxYCHwAFEU1hbmFnaW5nIERpcmVjdG9yZGQCDQ8PFgIfAAVRVGFtaWxuYWR1IFRyYWRlIFByb21vdGlvbiBPcmdhbmlzYXRpb24sIENUQyBDb21wbGV4LCBOYW5kYW1iYWtrYW0gQ2hlbm5haSA2MDAgMDg5ZGQCDw8WAh8BBVRodHRwczovL3d3dy5mYWNlYm9vay5jb20vcGVvcGxlL0NoZW5uYWktVHJhZGUtQ2VudHJlLzYxNTUyNTAyMTA2MDU0Lz9taWJleHRpZD1aYldLd0xkAhEPFgIfAQU5aHR0cHM6Ly94LmNvbS9DaGVubmFpQzI5OTI3P3Q9ZDd4YUVYMWU0cGJPWGVxekFWUndjdyZzPTA4ZAITDxYCHwEFSmh0dHBzOi8vd3d3Lmluc3RhZ3JhbS5jb20vY2hlbm5haXRyYWRlY2VudHJlb2ZmaWNpYWw/aWdzaD1ibWw1ZFRadlpuTmliR0ZoZAIVDxYCHwEFNGh0dHBzOi8vd3d3LnlvdXR1YmUuY29tL0BDaGVubmFpVHJhZGVDZW50cmUtb2ZmaWNpYWxkAhcPFgIfAQUaaHR0cHM6Ly93YS5tZS85MTkwNDM0ODAxMTJkAhkPDxYCHwAFIzA0NCAyMjMxIDYwMzMgPGJyLz4gKyA5MSA5MTc2ODgxMDAwZGQCGw8PFgIfAAUeZW5xdWlyeUBjaGVubmFpdHJhZGVjZW50cmUub3JnZGQCHQ8PFgIfAAUgbWFya2V0aW5nQGNoZW5uYWl0cmFkZWNlbnRyZS5vcmdkZAIfDw8WAh8ABRx0bnRwb0BjaGVubmFpdHJhZGVjZW50cmUub3JnZGQCIw8PFgIfAAVQQ29weXJpZ2h0IEAgMjAyNSBUYW1pbG5hZHUgVHJhZGUgUHJvbW90aW9uIE9yZ2FuaXNhdGlvbi4gLSBBbGwgcmlnaHRzIHJlc2VydmVkLiBkZGSIIxf+W/9+1IBrMKttdObofnrMxg==" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/WebResource.axd?d=nAhf_o7-65SyeyoQpZpAHwvjunMc4SWjh6aArW4brW-gQKYDpuLuRlF7FSw43IccyzC7Nr5tp_BAn3X-6s2QkvXzpCM1&amp;t=638901734248157332" type="text/javascript"></script>
+
+
+<script src="/ScriptResource.axd?d=6sKRT1ljwWWFG9Y5OE4JvxXS5XRavLsvAUb6lFOEYG-zJugT7NzX-zMrJAg6SOVUMsO4skGxBTotlCtOfCbxpqqKCTBPe9C8yOO2waMzqzsXmbawNlVrVkSYwIsoEI1_sHPOHw2&amp;t=ffffffffe4ec58b9" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/ScriptResource.axd?d=-AZfdtQ9n83BVaVlc0eLocLEU1fr9KM4TrrdwF3UULlpl8oD-16bQaMBu4V7Au2EQVqdD2xRujFWbWN9wx-y2JcWYaZkauMTWO8hkurSyV20_Voxt7M3NQNEerS_ZMrrWLD0Bg2&amp;t=ffffffffe4ec58b9" type="text/javascript"></script>
+<script src="CTCWebService.asmx/jsdebug" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="6D2A7C49" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAALzHfK2+/YtFik5EAipp2owVzVKzuUFTx98WC4FufQn8HpGTUaWxFA68t3K5ZRTafDb+6TZ" />
+</div>
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$ScriptManager1', 'form1', [], [], [], 90, 'ctl00');
+//]]>
+</script>
+
+        <header class="header">
+
+            <nav class="navbar navbar-expand-xl navbar-dark ">
+                <div class="container position-relative">
+
+                    <a href="https://chennaitradecentre.in/" id="lnkHome" class="navbar-brand">
+                        <img id="imgLogo" class="middle-logo" src="https://chennaitradecentre.in//assets/img/inner-images/logo3.png" alt="logo" />
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas"
+                        data-bs-target="#navbarOffcanvas" aria-controls="navbarOffcanvas" aria-expanded="false"
+                        aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="offcanvas offcanvas-end bg-secondary" id="navbarOffcanvas" tabindex="-1"
+                        aria-labelledby="offcanvasNavbarLabel">
+                        <div class="offcanvas-header">
+                            <h5 class="offcanvas-title text-light" id="offcanvasNavbarLabel">
+                                <img id="imgLogo2" class="middle-logo" src="https://chennaitradecentre.in//assets/img/inner-images/logo3.png" alt="logo" />
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white text-reset" data-bs-dismiss="offcanvas"
+                                aria-label="Close">
+                            </button>
+                        </div>
+                        <div class="offcanvas-body">
+                            <div class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                                <ul class="navbar-nav">
+                                    <li class="nav-item ">
+                                        <a class="nav-link " href="Home.aspx">Home</a>
+                                    </li>
+                                    <li class="nav-item ">
+                                        <a class="nav-link" href="AboutUs.aspx">About Us</a>
+                                    </li>
+
+                                    <li class="nav-item"><a class="nav-link" href="WhyChennai.aspx">Why Chennai?</a>
+                                    </li>
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Our
+                                        venue</a>
+                                        <ul class="dropdown-menu fade-down">
+                                            <li class="dropdown-submenu">
+                                                <a class="dropdown-item " href="VenueSpaces.aspx">Venue Spaces</a>
+
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="VenueServices.aspx">Venue Services
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="PartnerServices.aspx">Partner Services
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="VisitorExperience.aspx">Visitor
+                                                Experience
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+
+
+                                    <li class="nav-item"><a class="nav-link" href="MarketingPolicies.aspx">Marketing Policies
+                                    </a>
+                                        <li class="nav-item"><a class="nav-link" href="Careers.aspx">Careers</a>
+                                        </li>
+                                    </li>
+                                    <li class="nav-item"><a class="nav-link" href="WhatsOn.aspx">Tenders</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="Gallery.aspx">Gallery</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="VisitorsCaseStudy.aspx">Case study</a>
+                                    </li>
+                                    <li class="nav-item"><a class="nav-link" href="ContactUs.aspx">Contact Us</a>
+                                    </li>
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Plan Your Event</a>
+                                        <ul class="dropdown-menu fade-down">
+                                            <li class="dropdown-submenu">
+                                                <a class="dropdown-item" href="Enquiries.aspx">Plan Your Event </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="frmCheckHallAvailability.aspx">Hall Availability</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="nav-item"><a class="nav-link" href="UserLogin.aspx">Sign In</a>
+                                    </li>
+                                    <li class="nav-item"><a class="nav-link " href="UserLogin.aspx">
+                                        <span class=" plan-event">
+                                            <h6><i class="fa fa-sign-in" style="font-size: 16px"></i>Book Now</h6>
+                                        </span>
+                                    </a></li>
+
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <div style="min-height: 550px;">
+            
+    <style>
+        .schedule-count {
+            font-size: 20px !important;
+            width: 48px;
+            height: 48px;
+            margin-left: 10px;
+            line-height: 50px !important;
+        }
+
+        .schedule-speaker {
+            width: 100% !important;
+            padding-top: 10px;
+        }
+
+        .speaker-item h4 {
+            font-size: 20px !important;
+        }
+    </style>
+    <script>
+        window.onload = function abc() {
+            LoadUpCommingEvents();
+        }
+        function LoadUpCommingEvents() {
+            var hdnEventCategory = document.getElementById("cphBody_hdnEventCategory");
+            CTCWebService.GetUpCommingEvents(hdnEventCategory.value, ResultSuccess, ResultError);
+        }
+        function ResultSuccess(result) {
+            var divTabs = document.getElementById("cphBody_divTabs");
+            var divBookings = document.getElementById("pills-tabContent-schedule");
+            var divNoDetails = document.getElementById("cphBody_divNoDetails");
+            divTabs.innerHTML = "";
+            divBookings.innerHTML = "";
+            if (result != null) {
+                if (result.length > 0) {
+                    var headercontent = '<ul class="nav nav-pills" id="pills-tab-schedule" role="tablist">';
+                    var bookingcontent = '';
+                    for (i = 0; i < result.length; i++) {
+                        var activetabcontentstyle = ' active';
+                        var activecontentstyle = ' show active';
+                        if (i > 0) {
+                            activecontentstyle = '';
+                            activetabcontentstyle = '';
+                        }
+
+                        headercontent += '<li class="nav-item" role="presentation"><button class="nav-link ' + activetabcontentstyle + '" id="pills-schedule-tab' + i + '" data-bs-toggle="pill" data-bs-target="#pills-schedule' + i + '" type="button" role="tab" aria-controls="pills-schedule' + i + '" aria-selected="true"><span class="icon"><i class="fal fa-calendar-days"></i></span><span class="content">                                    <span class="date">' + result[i].MonthYearName + '</span> </span></button></li>';
+
+
+
+                        bookingcontent += '<div class="tab-pane fade ' + activecontentstyle + '" id="pills-schedule' + i + '" role="tabpanel" aria-labelledby="pills-schedule-tab' + i + '" tabindex="0"><div class="row g-4">';
+                        for (j = 0; j < result[i].lstBookings.length; j++) {
+                            var no = j + 1;
+                            var bookingdates = result[i].lstBookings[j].RequestFromDateStr + ' - ' + result[i].lstBookings[j].RequestToDateStr;
+                            var FacilityEventProfileName = result[i].lstBookings[j].FacilityEventProfileName;
+                            var FUCPurpose = result[i].lstBookings[j].FUCPurpose;
+                            var UsageCategoryName = result[i].lstBookings[j].UsageCategoryName;
+                            var OrganisationName = result[i].lstBookings[j].OrganisationName;
+                            var SelectedFacilityNames = result[i].lstBookings[j].SelectedFacilityNames;
+
+                            bookingcontent += '<div class="col-lg-10 m-auto mb-3"><div class="schedule-item"><span class="schedule-count">' + no + '</span><div class="schedule-content-wrap"><div class="schedule-content"><div class="schedule-info"><div class="schedule-meta">                                              <ul><li><i class="far fa-calendar"></i>' + bookingdates + '</li><li><i class="far fa-location-dot"></i>CTC Complex, Nandambakkam, Chennai</li></ul></div><div class="schedule-speaker"><div class="speaker-item"><h4>' + UsageCategoryName + ' - ' + FacilityEventProfileName + ' </h4></div><div class="speaker-item"><div class="speaker-info"><h6>Event Organizer</h6><span>' + OrganisationName + '</span></div></div><div class="speaker-item"><div class="speaker-info"><h6>VENUE</h6><span>' + SelectedFacilityNames + '</span></div></div></div></div></div></div></div></div>'
+
+                        }
+                        bookingcontent += '</div></div>';
+                    }
+                    headercontent += "</ul>";
+
+                    divTabs.innerHTML = headercontent;
+                    divBookings.innerHTML = bookingcontent;
+                    divNoDetails.style.display = "none";
+                }
+                else {
+                    divNoDetails.style.display = "block";
+                }
+            }
+        }
+        function ResultError() {
+
+        }
+    </script>
+    <input type="hidden" name="ctl00$cphBody$hdnEventCategory" id="cphBody_hdnEventCategory" value="1" />
+    <main class="main visit-us ">
+        <div class="site-breadcrumb" style="background: url(assets/img/inner-images/Upcoming-Events.png)">
+            <div class="container">
+                <h2 class="breadcrumb-title">Upcoming Events</h2>
+                
+            </div>
+        </div>
+        <div class="schedule-area py-90">
+            <div class="container">
+                <div id="cphBody_divTabs" class="schedule-nav wow fadeInUp" data-wow-delay=".25s">
+                    
+                </div>
+                <div class="tab-content wow fadeInUp" data-wow-delay=".25s" id="pills-tabContent-schedule">
+                </div>
+            </div>
+        </div>
+        <div id="cphBody_divNoDetails" class="text-18 text-danger margin-top-90 p-5 text-center  font-weight-600 no-details mb-4" style="display:none;">
+            <img src="images/no-details.jpg" width="80" />No Upcomming Events Found
+        </div>
+
+    </main>
+
+
+        </div>
+        <footer class="footer-area">
+            <div class="footer-shape">
+                <img src="assets/img/shape/01.png" alt>
+            </div>
+            <div class="footer-widget">
+                <div class="container">
+                    <div class="row footer-widget-wrapper pt-100 ">
+                        <div class="col-md-6 col-lg-4">
+                            <div class="footer-widget-box about-us">
+                                <a href="https://chennaitradecentre.in/" id="lnkFHome" class="footer-logo">
+                                    <img id="imgFLogo" src="https://chennaitradecentre.in//assets/img/inner-images/logo3.png" />
+                                </a>
+                                <p class="mb-3">
+                                    <span id="lblCDesignation">Managing Director</span>
+                                    <br>
+                                    <span id="lblCAddress">Tamilnadu Trade Promotion Organisation, CTC Complex, Nandambakkam Chennai 600 089</span>
+                                </p>
+                                <ul class="footer-list social">
+                                    <li><a href="https://www.facebook.com/people/Chennai-Trade-Centre/61552502106054/?mibextid=ZbWKwL" id="lnkFB" target="_blank"><i class="fab fa-facebook"></i></a></li>
+                                    <li><a href="https://x.com/ChennaiC29927?t=d7xaEX1e4pbOXeqzAVRwcw&s=08" id="lnkTwitter" target="_blank"><i class="fab fa-x-twitter"></i></a></li>
+                                    <li><a href="https://www.instagram.com/chennaitradecentreofficial?igsh=bml5dTZvZnNibGFh" id="lnkInstagram" target="_blank"><i class="fab fa-instagram"></i></a></li>
+                                    <li><a href="https://www.youtube.com/@ChennaiTradeCentre-official" id="lnkYoutube" target="_blank"><i
+                                        class="fab fa-youtube"></i></a></li>
+                                    <li><a href="https://wa.me/919043480112" id="lnkWhatsapp" target="_blank"><i
+                                        class="fab fa-whatsapp"></i></a></li>
+                                    <!-- <li><a href="#"  target="_blank"><i class="fab fa-linkedin-in"></i> </a></li> -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-2">
+                            <div class="footer-widget-box list">
+                                <h4 class="footer-widget-title">Quick View</h4>
+                                <ul class="footer-list">
+                                    <li><a href="Home.aspx"><i class="fas fa-caret-right"></i>Home</a> </li>
+                                    <li><a href="AboutUs.aspx"><i class="fas fa-caret-right"></i>About Us</a></li>
+
+                                    <li><a href="WhyChennai.aspx"><i class="fas fa-caret-right"></i>Why Chennai?</a></li>
+                                    <li><a href="javascript:void()"><i class="fas fa-caret-right"></i>Hall Availability</a></li>
+                                    <li><a href="MarketingPolicies.aspx"><i class="fas fa-caret-right"></i>Marketing Policies
+                                    </a></li>
+                                    <li><a href="Careers.aspx"><i class="fas fa-caret-right"></i>Careers</a></li>
+                                    <li><a href="VisitorsCaseStudy.aspx"><i class="fas fa-caret-right"></i>Case study</a></li>
+
+
+
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-2">
+                            <div class="footer-widget-box list">
+                                <h4 class="footer-widget-title">Featured Links</h4>
+                                <ul class="footer-list">
+                                    <li><a href="assets/img/inner-images/ctc-hall1.pdf" target="_blank"><i
+                                        class="fas fa-caret-right"></i>CTC Brochure</a></li>
+                                    <li><a href="sitemap.aspx"><i class="fas fa-caret-right"></i>Site Map</a></li>
+
+                                    <li><a href="assets/img/inner-images/TNTPO-GST-Number.pdf" target="_blank"><i
+                                        class="fas fa-caret-right"></i>Gstin – Number</a></li>
+
+                                    <li><a href="VenueSpaces.aspx"><i class="fas fa-caret-right"></i>Venue Spaces</a></li>
+                                    <li><a href="VenueServices.aspx"><i class="fas fa-caret-right"></i>Venue Services</a></li>
+                                    <li><a href="PartnerServices.aspx"><i class="fas fa-caret-right"></i>Partner Services</a></li>
+                                    <li><a href="VisitorExperience.aspx"><i class="fas fa-caret-right"></i>Visitor
+                                                Experience</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <div class="footer-widget-box list">
+                                <h4 class="footer-widget-title">Get In Touch</h4>
+                                <ul class="footer-contact">
+                                    <li><i class="far fa-phone"></i>
+                                        <span id="lblContactNo">044 2231 6033 <br/> + 91 9176881000</span></li>
+                                    <li style="display:none;"><i class="far fa-envelope"></i>
+                                        <span id="lblContactEmail1">enquiry@chennaitradecentre.org</span>
+                                    </li>
+                                    <li><i class="far fa-envelope"></i>
+                                        <span id="lblContactEmail2">marketing@chennaitradecentre.org</span>
+                                    </li>
+                                    <li><i class="far fa-envelope"></i>
+                                        <span id="lblContactEmail3">tntpo@chennaitradecentre.org</span>
+                                    </li>
+                                </ul>
+                                <div class="subscribe-form">
+
+                                    <div class="form-group">
+                                        <input type="email" class="form-control" placeholder="Your Email" id="txtSmailID" onkeypress="RestrictSpace(event,this);"
+                                            autocomplete="nope" onfocus="disableautocompletion(this.id);" />
+                                        <button class="theme-btn" type="submit" onclick="return Validate_SubscriptionMail();">
+                                            <span class="far fa-paper-plane"></span>Get In Touch
+                                        </button>
+
+                                    </div>
+                                    <div id="overLayBackground2" class="loading" style="display: none;">
+                                        <img id="imgPopupClose2" src="images/loading.gif" />
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="copyright">
+                    <div class="row">
+                        <div class="col-md-8 align-self-center">
+                            <p class="copyright-text">
+                                <span id="lblCopyWrite">Copyright @ 2025 Tamilnadu Trade Promotion Organisation. - All rights reserved. </span>
+                            </p>
+                        </div>
+                        <div class="col-md-4 align-self-center">
+                            <ul class="footer-menu">
+                                <li><a href="javascript:void()">Support</a></li>
+                                <li><a href="javascript:void()">Terms Of Services</a></li>
+                                <li><a href="javascript:void()">Privacy Policy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </form>
+
+    <script>
+        function Validate_SubscriptionMail() {
+            debugger;
+            var x = document.getElementById("txtSmailID").value;
+            var atpos = x.indexOf("@");
+            var dotpos = x.lastIndexOf(".");
+            if (atpos < 1 || dotpos < atpos + 2 || dotpos + 2 >= x.length) {
+                alertify.alert("Not a valid e-mail address");
+                return false;
+            } else {
+                document.getElementById("overLayBackground2").style.display = "block";
+                CTCWebService.SaveSubscriptionDetails(x, onsuccess111, onsubscriptionerror);
+                return false;
+            }
+        }
+        function onsuccess111(result) {
+            document.getElementById("overLayBackground2").style.display = "none";
+            alertify.success(result);
+            document.getElementById("txtSmailID").value = "";
+        }
+        function onsubscriptionerror() {
+            document.getElementById("overLayBackground2").style.display = "none";
+            alertify.error("error");
+        }
+    </script>
+    <a href="#" id="scroll-top"><i class="far fa-arrow-up"></i></a>
+    <!-- Slick Slider JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src='https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js'></script>
+    <script data-cfasync="false" src="../cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+    
+    <script src="assets/js/modernizr.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/imagesloaded.pkgd.min.js"></script>
+    <script src="assets/js/jquery.magnific-popup.min.js"></script>
+    <script src="assets/js/isotope.pkgd.min.js"></script>
+    <script src="assets/js/jquery.appear.min.js"></script>
+    <script src="assets/js/jquery.easing.min.js"></script>
+    <script src="assets/js/owl.carousel.min.js"></script>
+    <script src="assets/js/counter-up.js"></script>
+    <script src="assets/js/wow.min.js"></script>
+    <script src="assets/js/countdown.min.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js'></script>
+
+
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
+from sqlalchemy import delete, case, func, over
 from typing import List, Optional, Dict, Any
 import shutil
 import os
@@ -34,9 +34,15 @@ async def sync_events(city: str = "chennai", session: AsyncSession = Depends(get
         raise HTTPException(status_code=500, detail=str(e))
     
     saved_count = 0
+    processed_ids = set()
     for data in events_data:
+        evt_id = data["eventbrite_id"]
+        if evt_id in processed_ids:
+             continue
+        processed_ids.add(evt_id)
+
         # Check duplicates via eventbrite_id
-        stmt = select(Event).where(Event.eventbrite_id == data["eventbrite_id"])
+        stmt = select(Event).where(Event.eventbrite_id == evt_id)
         result = await session.execute(stmt)
         existing = result.scalars().first()
         
@@ -323,7 +329,7 @@ async def list_events(
     mode: str = None,    # 'online', 'offline', or None
     date: str = None,    # 'YYYY-MM-DD'
     page: int = 1,
-    limit: int = 10,
+    limit: int = 21,
     session: AsyncSession = Depends(get_session)
 ):
     """
@@ -379,9 +385,34 @@ async def list_events(
         
     # 3. Source Filter (Platform)
     if source and source.strip().lower() != "all":
-        # Check URL for the source name (e.g. 'eventbrite', 'meetup')
-        filter_query = filter_query.where(Event.url.ilike(f"%{source.strip()}%"))
-        # Add more sources here if needed
+        s_val = source.strip().lower()
+        
+        # Mapping for UI friendly names
+        if s_val == "ctc" or s_val == "trade centre":
+            s_val = "trade_centre" 
+        elif s_val == "allevents":
+            s_val = "allevents"
+            
+        # Check source in raw_data OR url
+        # Use simple URL check first for speed, then raw_data
+        # Note: raw_data->>'source' comparison needs casting or explicit containment
+        from sqlalchemy import cast, String
+        
+        # Flexible filter: URL contains string OR raw_data['source'] equals string
+        # Since 'trade_centre' is in raw_data, but URL is chennaitradecentre.org
+        
+        source_conditions = []
+        source_conditions.append(Event.url.ilike(f"%{s_val}%"))
+        
+        # Explicit raw_data check using astext (safer than cast)
+        # Event.raw_data['source'].astext gives the unquoted string value
+        source_conditions.append(Event.raw_data['source'].astext == s_val)
+        
+        # Special case for mapped CTC (also match the URL host)
+        if s_val == "trade_centre":
+             source_conditions.append(Event.url.ilike("%chennaitradecentre%"))
+
+        filter_query = filter_query.where(or_(*source_conditions))
         
     # 4. Cost Filter
     if is_free:
@@ -450,7 +481,20 @@ async def list_events(
         count_stmt = count_stmt.where(or_(*conditions))
         
     if source and source.strip().lower() != "all":
-        count_stmt = count_stmt.where(Event.url.ilike(f"%{source.strip()}%"))
+        s_val = source.strip().lower()
+        if s_val == "ctc" or s_val == "trade centre":
+            s_val = "trade_centre" 
+        elif s_val == "allevents":
+            s_val = "allevents"
+            
+        source_conditions = []
+        source_conditions.append(Event.url.ilike(f"%{s_val}%"))
+        source_conditions.append(Event.raw_data['source'].astext == s_val)
+        
+        if s_val == "trade_centre":
+             source_conditions.append(Event.url.ilike("%chennaitradecentre%"))
+             
+        count_stmt = count_stmt.where(or_(*source_conditions))
 
     if is_free:
         if is_free.lower() == "free":
@@ -475,14 +519,44 @@ async def list_events(
     total_events = count_result.scalar()
 
     # 4. Get DATA (Apply limit/offset)
-    # Order by InfiniteBZ events first (URL contains infinitebz.com), then by start_time
-    if limit >= 10000:
-        query = filter_query.order_by(Event.url.ilike("%infinitebz.com%").desc(), Event.start_time)
-    else:
-        query = filter_query.order_by(Event.url.ilike("%infinitebz.com%").desc(), Event.start_time).offset(offset).limit(limit)
-        
-    result = await session.execute(query)
-    events = result.scalars().all()
+    # We want InfiniteBZ events first, then others interleaved by source.
+    
+    # We need a subquery that adds the ranks
+    inner_subq = filter_query.subquery()
+    
+    # Create expressions using columns from the subquery
+    is_inf_expr = case((inner_subq.c.url.ilike("%infinitebz.com%"), 0), else_=1)
+    
+    source_rank_expr = func.row_number().over(
+        partition_by=inner_subq.c.raw_data['source'].astext,
+        order_by=inner_subq.c.start_time
+    )
+    
+    # Selection from the subquery
+    # We select all columns from inner_subq
+    inner_stmt = select(
+        inner_subq,
+        is_inf_expr.label('is_inf'),
+        source_rank_expr.label('s_rank')
+    )
+    
+    final_subq = inner_stmt.subquery()
+    
+    # Final query with limit/offset
+    final_query = select(final_subq).order_by(
+        final_subq.c.is_free.desc(),
+        final_subq.c.is_inf,
+        final_subq.c.s_rank,
+        final_subq.c.start_time
+    ).offset(offset).limit(limit)
+    
+    result = await session.execute(final_query)
+    
+    # Map back to Event objects
+    events = []
+    for row in result.all():
+        data = {col: getattr(row, col) for col in Event.__fields__ if hasattr(row, col)}
+        events.append(Event(**data))
     
     return EventListResponse(
         data=events,
@@ -566,7 +640,7 @@ async def register_for_event(
     # Generate a Self-Verified Confirmation ID
     import time
     from app.services.ticket_service import generate_ticket_pdf
-    from app.core.email_utils import send_ticket_email
+    from app.core.email_utils import send_ticket_email, send_organizer_notification_email
     
     confirmation_id = f"SELF-{int(time.time())}"
 
@@ -580,47 +654,61 @@ async def register_for_event(
     session.add(new_reg)
     await session.commit()
     
-    # --- NEW: Phase 1 Ticket Generation ---
-    # --- NEW: Phase 1 Ticket Generation ---
-    try:
-        # 1. Generate PDF
-        ticket_path = generate_ticket_pdf(
-            registration_id=confirmation_id,
-            event_title=event.title,
-            user_name=current_user.full_name or current_user.email,
-            event_date=event.start_time,
-            event_location=event.venue_name or "Online"
-        )
-        
-        # 2. Send Email (BACKGROUND TASK)
-        # We pass the async function send_ticket_email to background_tasks
-        background_tasks.add_task(
-            send_ticket_email,
-            email=current_user.email,
-            name=current_user.full_name or "Attendee",
-            event_title=event.title,
-            ticket_path=ticket_path
-        )
-        
-        email_status = "QUEUED_IN_BACKGROUND"
-        
-    except Exception as e:
-        print(f"Ticket Gen Error: {str(e)}")
-        email_status = f"ERROR: {str(e)}"
+    # Check if Eventbrite/External
+    is_eventbrite = event.url and "eventbrite" in event.url.lower()
+    email_status = "SKIPPED_EXTERNAL"
+    email_sent = False
 
-    # Send QR code and PDF via email after successful registration
-    event_data = {
-        "id": event.id,
-        "title": event.title,
-        "start_time": event.start_time.strftime('%Y-%m-%d %H:%M %p'),
-        "venue_name": event.venue_name,
-        "organizer_name": event.organizer_name
-    }
-    email_sent = await send_event_ticket_email(current_user.email, event_data, confirmation_id, user_name=current_user.full_name)
+    if not is_eventbrite:
+        # --- NEW: Phase 1 Ticket Generation ---
+        # --- NEW: Phase 1 Ticket Generation ---
+        try:
+            # 1. Generate PDF
+            ticket_path = generate_ticket_pdf(
+                registration_id=confirmation_id,
+                event_title=event.title,
+                user_name=current_user.full_name or current_user.email,
+                user_email=current_user.email,
+                event_date=event.start_time,
+                event_location=event.venue_name or "Online"
+            )
+            
+            # 2. Send Email (BACKGROUND TASK)
+            # We pass the async function send_ticket_email to background_tasks
+            background_tasks.add_task(
+                send_ticket_email,
+                email=current_user.email,
+                name=current_user.full_name or "Attendee",
+                event_title=event.title,
+                event_id=event.id,
+                ticket_id=confirmation_id
+            )
+
+            # 3. Send Notification Email to Organizer/Sender (BACKGROUND TASK)
+            background_tasks.add_task(
+                send_organizer_notification_email,
+                email=current_user.email, # Argument unused by function but good for logging if updated
+                organizer_name=event.organizer_name,
+                attendee_name=current_user.full_name or "Attendee",
+                attendee_email=current_user.email,
+                event_title=event.title,
+                event_date=event.start_time.strftime('%B %d, %Y @ %I:%M %p'),
+                ticket_path=ticket_path
+            )
+            
+            email_status = "QUEUED_IN_BACKGROUND"
+            email_sent = True
+            
+        except Exception as e:
+            print(f"Ticket Gen Error: {str(e)}")
+            email_status = f"ERROR: {str(e)}"
+            email_sent = False
 
     message = "Registration verified and saved!"
     if email_sent:
         message += " Event ticket sent to your email."
+    elif is_eventbrite:
+         message += " (External Registration Recorded)"
     else:
         message += " (Note: Email sending is not configured.)"
 
@@ -798,9 +886,84 @@ async def get_user_registrations(
             registered_events.append(event_data)
 
     return {
-        "registrations": registered_events,
-        "total": len(registered_events)
+        "status": "success",
+        "message": "User registrations retrieved",
+        "registrations": registered_events
     }
+
+@router.get("/user/registrations/{event_id}/pdf")
+async def download_ticket_pdf(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Generates and returns the PDF ticket for a specific registration.
+    """
+    from fastapi.responses import FileResponse
+    from app.services.ticket_service import generate_ticket_pdf
+    
+    # 1. Find the registration
+    stmt = select(UserRegistration).where(
+        UserRegistration.user_email == current_user.email,
+        UserRegistration.event_id == event_id,
+        UserRegistration.status == "SUCCESS"
+    )
+    result = await session.execute(stmt)
+    registration = result.scalars().first()
+    
+    if not registration:
+        raise HTTPException(status_code=404, detail="Registration not found")
+        
+    # 2. Get Event Details
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    # 3. Generate PDF (Regenerate on demand)
+    try:
+        ticket_path = generate_ticket_pdf(
+            registration_id=registration.confirmation_id,
+            event_title=event.title,
+            user_name=current_user.full_name or current_user.email,
+            user_email=current_user.email,
+            event_date=event.start_time,
+            event_location=event.venue_name or "Online"
+        )
+        return FileResponse(ticket_path, media_type='application/pdf', filename=f"ticket_{event_id}.pdf")
+    except Exception as e:
+        print(f"PDF Gen Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate ticket PDF")
+
+
+# --- 7. FOLLOWING SYSTEM ENDPOINTS ---
+
+@router.delete("/user/registrations/{event_id}")
+async def cancel_registration(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Cancels a user's registration for a specific event.
+    """
+    # 1. Check if registration exists
+    stmt = select(UserRegistration).where(
+        UserRegistration.user_email == current_user.email,
+        UserRegistration.event_id == event_id,
+        UserRegistration.status == "SUCCESS"
+    )
+    result = await session.execute(stmt)
+    registration = result.scalars().first()
+    
+    if not registration:
+        raise HTTPException(status_code=404, detail="Registration not found")
+        
+    # 2. Delete the registration
+    await session.delete(registration)
+    await session.commit()
+    
+    return {"status": "success", "message": "Registration cancelled successfully"}
 
 # --- 7. FOLLOWING SYSTEM ENDPOINTS ---
 

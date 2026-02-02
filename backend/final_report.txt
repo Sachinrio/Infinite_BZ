@@ -1,0 +1,12 @@
+=== INFINITE BZ FINAL SCRAPE REPORT ===
+
+--- Event Source Counts ---
+eventbrite_api: 12
+trade_centre: 21
+allevents: 19
+
+--- Image Quality Audit ---
+Generic Logos (AllEvents og-logo): 0
+High Quality Images (AllEvents cdn-ip): 16
+High Quality Images (Eventbrite): 12
+Fallback Images (Unsplash): 21

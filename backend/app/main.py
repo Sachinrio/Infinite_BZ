@@ -2,7 +2,9 @@ import sys
 import asyncio
 
 if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    import asyncio
+    if not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
@@ -19,71 +21,39 @@ from app.core.database import init_db, engine
 from app.api.routes import router
 from app.api.auth_routes import router as auth_router
 from app.api.admin_routes import router as admin_router
+from app.api.scraper_routes import router as scraper_router # NEW ROUTER
 from app.models.schemas import Event
-from app.services.scraper import scrape_and_process_events 
+from app.services.event_manager import run_full_scrape_cycle, remove_outdated_events
 
 # --- THE BACKGROUND TASK ---
 async def scheduled_scraper_task():
     """
-    Runs automatically to scrape IDs and fetch API details.
+    Runs automatically daily. Now spawns a separate worker process to avoid Windows loop issues.
     """
-    print("DAILY SCHEDULE: Starting automatic hybrid scraper...")
-    city = "chennai" 
-    
-    # 1. Run the Hybrid Scraper
-    try:
-        from app.services.scraper import scrape_events_playwright
-        events_data = await scrape_events_playwright(city)
-        print(f"Scraper finished. Found {len(events_data)} potential events.")
-    except Exception as e:
-        print(f"Scraper failed: {e}")
-        return
-
-    # 2. Save to Database
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    async with async_session() as session:
-        added_count = 0
-        updated_count = 0
-        for data in events_data:
-            # Check duplicates using 'eventbrite_id'
-            statement = select(Event).where(Event.eventbrite_id == data["eventbrite_id"])
-            result = await session.execute(statement)
-            existing_event = result.scalars().first()
-            
-            if not existing_event:
-                event = Event(**data)
-                session.add(event)
-                added_count += 1
-            else:
-                # Update existing event with fresh data from API
-                existing_event.title = data['title']
-                existing_event.description = data['description']
-                existing_event.start_time = data['start_time']
-                existing_event.end_time = data['end_time']
-                existing_event.is_free = data['is_free']
-                existing_event.venue_name = data['venue_name']
-                existing_event.url = data['url']
-                existing_event.image_url = data['image_url']
-                updated_count += 1
-        
-        await session.commit()
-        print(f"Database Update: Saved {added_count} new events. Updated {updated_count} existing events.")
+    import subprocess
+    import sys
+    import os
+    python_exe = sys.executable
+    worker_script = os.path.join(os.getcwd(), "scraper_worker.py")
+    log_file = os.path.join(os.getcwd(), "scraper.log")
+    # Open log file for background process inheritance
+    f = open(log_file, "a")
+    subprocess.Popen(
+        [python_exe, worker_script], 
+        stdout=f, 
+        stderr=f, 
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+    )
 
 async def scheduled_cleanup_task():
     """
     Runs automatically to delete expired events.
+    Now delegates to event_manager logic but kept for scheduler clarity.
     """
-    print("DAILY SCHEDULE: Starting expired event cleanup...")
-    from app.services.cleanup import delete_expired_events
-    
+    from app.services.event_manager import remove_outdated_events
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
-        try:
-            deleted_count = await delete_expired_events(session)
-            print(f"Cleanup finished. Deleted {deleted_count} expired events.")
-        except Exception as e:
-            print(f"Cleanup failed: {e}")
+        await remove_outdated_events(session)
 
 # --- LIFESPAN MANAGER ---
 @asynccontextmanager
@@ -98,7 +68,7 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     print("Scheduler started! Will scrape every day at 8:00 AM.")
     
-    # 3. Startup: Run Cleanup Immediately (Since laptop might be off at 2 AM)
+    # 3. Startup: Run Cleanup Immediately
     print("STARTUP: Running initial cleanup...")
     asyncio.create_task(scheduled_cleanup_task())
     
@@ -134,6 +104,7 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(scraper_router, prefix="/api/v1") # NEW Scraper Endpoints
 
 # Mount uploads directory to serve images
 import os
@@ -142,10 +113,10 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.post("/scrape")
 async def manual_scrape():
-    """Manually trigger the scraper in the background."""
+    """Legacy manual trigger (kept for compatibility)."""
     asyncio.create_task(scheduled_scraper_task())
-    return {"message": "Scraper triggered in background. Check server logs for progress."}
+    return {"message": "Scraper triggered via Legacy Endpoint."}
 
 @app.get("/")
 def root():
-    return {"message": "Infinite BZ Backend is Running with Hybrid Scraper 🕒"}
+    return {"message": "Infinite BZ Backend is Running with Multi-Source Scraper 🚀"}

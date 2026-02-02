@@ -16,12 +16,24 @@ export default function App() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null); // User state
   const [checkInEventId, setCheckInEventId] = useState(null);
+  const [initialDashboardView, setInitialDashboardView] = useState(null);
+  const [initialDashboardEventId, setInitialDashboardEventId] = useState(null);
 
   // View State: 'landing' or 'feed' or 'auth' or 'dashboard'
   const [currentView, setCurrentView] = useState('landing');
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
 
   useEffect(() => {
+    // Parse query params for deep linking
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    const eventId = params.get('eventId');
+
+    if (view === 'ticket-details' && eventId) {
+      setInitialDashboardView('ticket-details');
+      setInitialDashboardEventId(eventId);
+    }
+
     fetchEvents();
     checkUserSession();
   }, []);
@@ -71,6 +83,35 @@ export default function App() {
         // For now, let's keep landing unless explicitly logged in, OR 
         // if the user refreshes on Dashboard? 
         // Let's rely on explicit navigation for now, but handle login redirection below.
+
+        // Handle Deep Linking Redirect
+        const params = new URLSearchParams(window.location.search);
+        const ticketView = params.get('view') === 'ticket-details';
+        const expectedEmail = params.get('email');
+
+        if (ticketView) {
+          // Security Check: If email is specified in URL, it MUST match the logged-in user (case-insensitive)
+          if (expectedEmail && userData.email.toLowerCase() !== expectedEmail.toLowerCase()) {
+            alert(`You are logged in as ${userData.email}, but this ticket belongs to ${expectedEmail}. Please log in with the correct account.`);
+
+            // Clear the sensitive initial state so it doesn't persist
+            setInitialDashboardView(null);
+            setInitialDashboardEventId(null);
+
+            // Clean URL
+            if (window.history.pushState) {
+              const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              window.history.pushState({ path: newUrl }, '', newUrl);
+            }
+
+            localStorage.removeItem('token');
+            setUser(null);
+            setAuthMode('login');
+            setCurrentView('auth');
+          } else {
+            setCurrentView('dashboard');
+          }
+        }
       } else {
         localStorage.removeItem('token');
       }
@@ -164,6 +205,8 @@ export default function App() {
                 setCurrentView(view);
               }
             }}
+            initialView={initialDashboardView}
+            initialEventId={initialDashboardEventId}
           />
         </ErrorBoundary>
       )}

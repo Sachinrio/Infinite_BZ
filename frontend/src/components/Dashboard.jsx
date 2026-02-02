@@ -11,8 +11,9 @@ import MyEvents from './MyEvents';
 import MyRegistrationsPage from './MyRegistrationsPage';
 import NotificationsPage from './NotificationsPage';
 import Sidebar from './Sidebar';
+import EventTicketPage from './EventTicketPage';
 
-export default function Dashboard({ user, onLogout, onNavigate }) {
+export default function Dashboard({ user, onLogout, onNavigate, initialView, initialEventId }) {
     const [stats, setStats] = useState({
         total_users: 0,
         active_events: 0,
@@ -24,7 +25,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         data: [],
         total: 0,
         page: 1,
-        limit: 10
+        limit: 21
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -38,10 +39,49 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [selectedDate, setSelectedDate] = useState(""); // YYYY-MM-DD
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [activeView, setActiveView] = useState('feed'); // 'feed' or 'my-events' or 'my-registrations' or 'notifications'
+
+    // Initialize activeView based on prop or default to 'feed'
+    // Map 'ticket-details' from URL to 'ticket' view in Dashboard
+    const [activeView, setActiveView] = useState(initialView === 'ticket-details' ? 'ticket' : (initialView || 'feed'));
+
+    // Initialize selectedInternalEvent if deep linking to a ticket
+    // Note: We only have the ID here, so we might need to fetch the full event details in EventTicketPage or temporarily create a shell object
+    const [selectedInternalEvent, setSelectedInternalEvent] = useState(initialEventId ? { id: initialEventId } : null);
+
     const [userActivities, setUserActivities] = useState([]);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
     const [chatbotFilters, setChatbotFilters] = useState({}); // For chatbot-driven filters
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            const token = localStorage.getItem('token');
+            // Trigger background scrape
+            const res = await fetch('http://localhost:8000/api/v1/refresh-events', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                // Show a quick visual cue or toast
+                // e.g. toast.success("Syncing started...") or just rely on the spinner
+            } else {
+                console.error("Refresh failed", res.status);
+            }
+
+            // Wait a bit and then reload the list to see if anything appeared immediately
+            // or just to reset the spinner after a delay since it's a background task
+            setTimeout(() => {
+                fetchEvents(currentPage, activeSearch, selectedCity, selectedCategory, selectedSource, selectedCost, selectedMode, selectedDate);
+                setIsRefreshing(false);
+            }, 5000); // 5 seconds delay to allow some scraping to happen
+
+        } catch (err) {
+            console.error("Refresh error", err);
+            setIsRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         fetchDashboardStats();
@@ -125,7 +165,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
             // Construct Query Params
             const params = new URLSearchParams({
                 page: page,
-                limit: 10,
+                limit: 21,
                 city: city === "All Cities" ? "all" : city,
                 category: category === "All" ? "all" : category,
                 source: source === "All" ? "all" : source,
@@ -159,7 +199,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                         data: data,
                         total: 100, // Mock total
                         page: page,
-                        limit: 10
+                        limit: 21
                     });
                 } else {
                     // Fallback for empty or unexpected structure
@@ -183,7 +223,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCreateEventModal, setShowCreateEventModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
-    const [selectedInternalEvent, setSelectedInternalEvent] = useState(null);
+
 
     const [pendingEventId, setPendingEventId] = useState(null);
     const [pendingEventTitle, setPendingEventTitle] = useState("");
@@ -361,9 +401,41 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                 {activeView === 'my-events' ? (
                     <MyEvents onCreateNew={() => onNavigate('create-event')} />
                 ) : activeView === 'my-registrations' ? (
-                    <MyRegistrationsPage onNavigate={() => setActiveView('feed')} user={user} />
+                    <MyRegistrationsPage
+                        onNavigate={(view, data) => {
+                            if (view === 'ticket-details') {
+                                setSelectedInternalEvent(data);
+                                setActiveView('ticket');
+                            } else {
+                                setActiveView('feed');
+                            }
+                        }}
+                        user={user}
+                    />
                 ) : activeView === 'notifications' ? (
                     <NotificationsPage notifications={userActivities} />
+                ) : activeView === 'ticket' ? (
+                    <EventTicketPage
+                        eventId={selectedInternalEvent?.id}
+                        user={user}
+                        onNavigate={(view) => setActiveView(view)}
+                        onCancelSuccess={() => {
+                            // Remove from local state immediately
+                            if (selectedInternalEvent?.id) {
+                                setNewlyRegisteredIds(prev => prev.filter(id => id !== selectedInternalEvent.id));
+                                setUserRegistrationCount(prev => Math.max(0, prev - 1));
+                            }
+
+                            // Clear deep link params from URL without reloading
+                            if (window.history.pushState) {
+                                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                                window.history.pushState({ path: newUrl }, '', newUrl);
+                            }
+
+                            // Navigate back to feed
+                            setActiveView('feed');
+                        }}
+                    />
                 ) : (
                     <>
                         {/* Header */}
@@ -469,7 +541,15 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-lg font-bold text-white">Upcoming Events</h2>
                                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                                    Last updated: 5m ago <span className="cursor-pointer hover:text-sky-500">↻</span>
+                                    Last updated: 5m ago
+                                    <button
+                                        onClick={handleRefresh}
+                                        disabled={isRefreshing}
+                                        className={`p-1 hover:text-sky-500 transition-all ${isRefreshing ? 'animate-spin text-sky-500' : ''}`}
+                                        title="Refresh Events"
+                                    >
+                                        <RefreshCw size={14} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -478,13 +558,13 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                                 <CityDropdown selected={selectedCity} onChange={setSelectedCity} />
                                 <FilterDropdown
                                     label="Industry"
-                                    options={["All", "Startup", "Business", "Sports", "Tech", "Music"]}
+                                    options={["All", "Startup", "Business", "Tech"]}
                                     selected={selectedCategory}
                                     onChange={setSelectedCategory}
                                 />
                                 <FilterDropdown
                                     label="Source"
-                                    options={["All", "Eventbrite", "Meetup", "InfiniteBZ"]}
+                                    options={["All", "Eventbrite", "Meetup", "AllEvents", "Trade Centre", "InfiniteBZ"]}
                                     selected={selectedSource}
                                     onChange={setSelectedSource}
                                 />
@@ -1094,13 +1174,23 @@ function EventCard({ event, onRegister, isRegistered, user, onNavigate }) {
                 <div className="absolute top-3 left-3 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold">
                     {new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
-                {event.image_url && (
-                    <img
-                        src={event.image_url}
-                        alt={event.title}
-                        className="w-full h-full object-cover absolute inset-0"
-                    />
-                )}
+                <img
+                    src={event.image_url || `https://images.unsplash.com/photo-${[
+                        "1540575861501-7cf05a4b125a",
+                        "1505373630103-89d00c2a5851",
+                        "1475721027785-f74eccf877e2",
+                        "1511795409834-ef04bbd61622",
+                        "1587825140708-dfaf72ae4b04",
+                        "1431540015161-0bf868a2d407"
+                    ][event.id % 6]}?q=80&w=1000&auto=format&fit=crop`}
+                    alt={event.title}
+                    className="w-full h-full object-cover absolute inset-0"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        const fallbacks = ["1540575861501-7cf05a4b125a", "1505373630103-89d00c2a5851", "1475721027785-f74eccf877e2", "1511795409834-ef04bbd61622"];
+                        e.target.src = `https://images.unsplash.com/photo-${fallbacks[event.id % 4]}?q=80&w=1000&auto=format&fit=crop`;
+                    }}
+                />
             </div>
 
             {/* Content */}
@@ -1148,12 +1238,48 @@ function EventCard({ event, onRegister, isRegistered, user, onNavigate }) {
                 {/* Source */}
                 <div className="flex items-center justify-between mb-4 mt-auto">
                     <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${event.raw_data?.source === 'InfiniteBZ' ? 'bg-primary-500 text-white' : 'bg-orange-500 text-white'}`}>
-                            {event.raw_data?.source === 'InfiniteBZ' ? 'IB' : 'EB'}
-                        </div>
-                        <span className={`text-xs font-medium ${event.raw_data?.source === 'InfiniteBZ' ? 'text-primary-400' : 'text-orange-400'}`}>
-                            {event.raw_data?.source === 'InfiniteBZ' ? 'InfiniteBZ' : 'Eventbrite'}
-                        </span>
+                        {(() => {
+                            const source = event.raw_data?.source || "eventbrite";
+                            const sourceLower = source.toLowerCase();
+
+                            let label = "EB";
+                            let fullName = "Eventbrite";
+                            let colorClass = "bg-orange-500";
+                            let textColor = "text-orange-400";
+
+                            if (sourceLower === 'infinitebz') {
+                                label = "IB";
+                                fullName = "InfiniteBZ";
+                                colorClass = "bg-primary-500";
+                                textColor = "text-primary-400";
+                            } else if (sourceLower === 'meetup') {
+                                label = "M";
+                                fullName = "Meetup";
+                                colorClass = "bg-red-500";
+                                textColor = "text-red-400";
+                            } else if (sourceLower === 'trade_centre' || sourceLower === 'ctc') {
+                                label = "CTC";
+                                fullName = "Trade Centre";
+                                colorClass = "bg-blue-500";
+                                textColor = "text-blue-400";
+                            } else if (sourceLower === 'allevents') {
+                                label = "AE";
+                                fullName = "AllEvents";
+                                colorClass = "bg-yellow-500";
+                                textColor = "text-yellow-400";
+                            }
+
+                            return (
+                                <>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${colorClass}`}>
+                                        {label}
+                                    </div>
+                                    <span className={`text-xs font-medium ${textColor}`}>
+                                        {fullName}
+                                    </span>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 

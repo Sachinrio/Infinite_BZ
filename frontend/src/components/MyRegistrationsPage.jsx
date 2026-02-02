@@ -185,8 +185,8 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
           <button
             onClick={() => setActiveTab('going')}
             className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition ${activeTab === 'going'
-                ? 'bg-primary-500 text-slate-900'
-                : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-500 text-slate-900'
+              : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
               }`}
           >
             ✓ Going
@@ -194,8 +194,8 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
           <button
             onClick={() => setActiveTab('saved')}
             className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition ${activeTab === 'saved'
-                ? 'bg-primary-500 text-slate-900'
-                : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-500 text-slate-900'
+              : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
               }`}
           >
             📌 Saved
@@ -203,8 +203,8 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
           <button
             onClick={() => setActiveTab('past')}
             className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition ${activeTab === 'past'
-                ? 'bg-primary-500 text-slate-900'
-                : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-500 text-slate-900'
+              : 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
               }`}
           >
             ↩ Past
@@ -256,7 +256,7 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getFilteredRegistrations().map((event, index) => (
-                <div key={event.id || index} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                <div key={event.id || index} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition flex flex-col">
                   <div className="relative h-32 bg-gradient-to-r from-primary-500 to-indigo-600 flex items-center justify-center">
                     <div className="absolute top-2 left-2 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                       <CheckCircle2 size={12} />
@@ -269,12 +269,9 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
                         className="w-full h-full object-cover absolute inset-0"
                       />
                     )}
-                    <div className="text-center relative z-10 px-2">
-                      <p className="text-white text-sm font-bold overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{event.title}</p>
-                    </div>
                   </div>
 
-                  <div className="p-4">
+                  <div className="p-4 flex flex-col flex-1">
                     <h3 className="text-lg font-bold text-gray-900 mb-2 overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {event.title}
                     </h3>
@@ -307,22 +304,38 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
                         <span className="text-xs">{event.ticket_type || 'Confirmed'}</span>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${event.is_free
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-orange-100 text-orange-700'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-orange-100 text-orange-700'
                         }`}>
                         {event.is_free ? 'Free' : 'Paid'}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-4 mt-3">
-                      <div onClick={() => handleShowQr(event.id)} className="flex items-center gap-1 text-gray-600 hover:text-gray-800 cursor-pointer">
-                        <QrCode size={16} />
-                        <span className="text-xs">QR Code</span>
-                      </div>
-                      <div onClick={() => handleAddToCalendar(event)} className="flex items-center gap-1 text-gray-600 hover:text-gray-800 cursor-pointer">
-                        <CalendarPlus size={16} />
-                        <span className="text-xs">Add to Calendar</span>
-                      </div>
+                    <div className="mt-3 mt-auto">
+
+
+                      {/* InfiniteBZ Ticket Button (and other locally registered events) */}
+                      {(!event.url || !event.url.toLowerCase().includes('eventbrite')) && (
+                        <button
+                          onClick={() => onNavigate('ticket-details', event)}
+                          className="w-full mt-4 bg-primary-500 hover:bg-primary-600 text-slate-900 font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2"
+                        >
+                          <QrCode size={18} />
+                          Show Ticket
+                        </button>
+                      )}
+
+                      {/* Eventbrite Source Button */}
+                      {event.url && event.url.toLowerCase().includes('eventbrite') && (
+                        <a
+                          href="https://www.eventbrite.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full mt-4 bg-[#F05537] hover:bg-[#d04428] text-white font-bold py-2 px-4 rounded-lg text-center transition-colors flex items-center justify-center gap-2"
+                        >
+                          Go to official source
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
