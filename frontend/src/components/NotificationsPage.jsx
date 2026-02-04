@@ -26,6 +26,10 @@ const NotificationsPage = ({ notifications = [] }) => {
           return 'info';
         case 'event_deleted':
           return 'warning';
+        case 'event_cancelled':
+          return 'error';
+        case 'event_recommendation':
+          return 'purple';
         default:
           return 'info';
       }
@@ -34,6 +38,9 @@ const NotificationsPage = ({ notifications = [] }) => {
     const getNotificationTitle = (type, title) => {
       switch (type) {
         case 'event_created':
+          if (activity.status === 'created_global') {
+            return title;
+          }
           return 'Event Created';
         case 'event_registered':
           return 'Event Registration';
@@ -41,6 +48,10 @@ const NotificationsPage = ({ notifications = [] }) => {
           return 'New Follower';
         case 'event_deleted':
           return 'Event Deleted';
+        case 'event_cancelled':
+          return 'Registration Cancelled';
+        case 'event_recommendation':
+          return title;
         default:
           return title || 'Activity';
       }
@@ -49,6 +60,9 @@ const NotificationsPage = ({ notifications = [] }) => {
     const getNotificationSubtitle = (activity) => {
       switch (activity.type) {
         case 'event_created':
+          if (activity.status === 'created_global') {
+            return activity.subtitle;
+          }
           return `You created "${activity.title}"`;
         case 'event_registered':
           return `Successfully registered for "${activity.title}"`;
@@ -56,6 +70,10 @@ const NotificationsPage = ({ notifications = [] }) => {
           return `${activity.follower_name || activity.follower_email} started following you`;
         case 'event_deleted':
           return `Event "${activity.title}" was deleted`;
+        case 'event_cancelled':
+          return `You cancelled your registration for "${activity.title.replace('Registration Cancelled: ', '')}"`;
+        case 'event_recommendation':
+          return activity.description || `Based on your interest in ${activity.category}`;
         default:
           return activity.venue || activity.follower_name || 'Activity details';
       }
@@ -71,6 +89,10 @@ const NotificationsPage = ({ notifications = [] }) => {
           return 'View Profile';
         case 'event_deleted':
           return 'View History';
+        case 'event_cancelled':
+          return null;
+        case 'event_recommendation':
+          return 'View Event';
         default:
           return 'View Details';
       }
@@ -78,15 +100,14 @@ const NotificationsPage = ({ notifications = [] }) => {
 
     const getTimeAgo = (dateString) => {
       if (!dateString) return 'Recently';
-      const now = new Date();
+      if (!dateString) return 'Recently';
       const activityDate = new Date(dateString);
-      const diffInHours = Math.floor((now - activityDate) / (1000 * 60 * 60));
-
-      if (diffInHours < 1) return 'Just now';
-      if (diffInHours < 24) return `${diffInHours}h ago`;
-      const diffInDays = Math.floor(diffInHours / 24);
-      if (diffInDays < 7) return `${diffInDays}d ago`;
-      return activityDate.toLocaleDateString();
+      return activityDate.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     };
 
     return {
@@ -163,23 +184,15 @@ const NotificationsPage = ({ notifications = [] }) => {
       success: '✅',
       info: '🔔',
       warning: '⚠️',
-      purple: '💜'
+      error: '❌',
+      purple: '✨'
     };
     return icons[type] || '📌';
   };
 
   return (
     <>
-      <style>{`
-        .no-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-      <div className="min-h-screen bg-slate-900 overflow-y-scroll max-h-screen no-scroll">
+      <div className="min-h-screen bg-slate-900">
         <div className="w-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -236,23 +249,25 @@ const NotificationsPage = ({ notifications = [] }) => {
                       {notif.badge && (
                         <span className="w-3 h-3 bg-primary-500 rounded-full"></span>
                       )}
-                      <button
-                        onClick={() => {
-                          if (notif.action === 'View Profile' && originalActivity.type === 'new_follower') {
-                            setSelectedFollower(originalActivity);
-                            setShowFollowerModal(true);
-                          } else if (notif.action === 'View Ticket' && originalActivity.type === 'event_registered') {
-                            fetchQRCode(originalActivity.id);
-                          } else if (notif.action === 'View Event' && (originalActivity.type === 'event_created' || originalActivity.type === 'event_registered')) {
-                            fetchEventDetails(originalActivity.id);
-                          } else {
-                            markAsRead(notif.id);
-                          }
-                        }}
-                        className="text-sm text-primary-400 hover:text-primary-300 font-medium px-3 py-1 rounded-md hover:bg-primary-500/10 transition-colors"
-                      >
-                        {notif.action}
-                      </button>
+                      {notif.action && (
+                        <button
+                          onClick={() => {
+                            if (notif.action === 'View Profile' && originalActivity.type === 'new_follower') {
+                              setSelectedFollower(originalActivity);
+                              setShowFollowerModal(true);
+                            } else if (notif.action === 'View Ticket' && originalActivity.type === 'event_registered') {
+                              fetchQRCode(originalActivity.id);
+                            } else if (notif.action === 'View Event' && (originalActivity.type === 'event_created' || originalActivity.type === 'event_registered' || originalActivity.type === 'event_recommendation')) {
+                              fetchEventDetails(originalActivity.id);
+                            } else {
+                              markAsRead(notif.id);
+                            }
+                          }}
+                          className="text-sm text-primary-400 hover:text-primary-300 font-medium px-3 py-1 rounded-md hover:bg-primary-500/10 transition-colors"
+                        >
+                          {notif.action}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

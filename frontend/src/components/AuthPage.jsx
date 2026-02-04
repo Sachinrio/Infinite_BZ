@@ -19,6 +19,53 @@ export default function AuthPage({ onBack, onComplete, initialMode = 'login' }) 
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
 
+    // --- Email Verification State (Signup Only) ---
+    const [verifyStatus, setVerifyStatus] = useState('idle'); // 'idle', 'sending', 'pending', 'verified'
+    const [verificationOtp, setVerificationOtp] = useState('');
+
+    const sendVerificationOtp = async () => {
+        if (!email) {
+            setError("Please enter an email address first.");
+            return;
+        }
+        setVerifyStatus('sending');
+        setError(null);
+        try {
+            const res = await fetch('/api/v1/auth/verify-email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to send verification code.');
+            setVerifyStatus('pending');
+            alert("Verification code sent to " + email);
+        } catch (err) {
+            setError(err.message);
+            setVerifyStatus('idle');
+        }
+    };
+
+    const verifyEmailOtp = async () => {
+        if (!verificationOtp) {
+            setError("Please enter the verification code.");
+            return;
+        }
+        try {
+            const res = await fetch('/api/v1/auth/verify-email/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: verificationOtp }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Invalid code.');
+            setVerifyStatus('verified');
+            setError(null);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     // Toggle Mode
     const toggleMode = (newMode) => {
         setMode(newMode);
@@ -290,18 +337,59 @@ export default function AuthPage({ onBack, onComplete, initialMode = 'login' }) 
                         )}
 
                         {/* EMAIL ADDRESS - ALL MODES */}
+                        {/* EMAIL ADDRESS - ALL MODES */}
                         {(mode !== 'forgot' || resetStep === 1) && (
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Address</label>
-                                <input
-                                    type="email"
-                                    placeholder="name@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors placeholder:text-slate-600"
-                                    required={mode !== 'forgot' || resetStep === 1}
-                                    disabled={mode === 'forgot' && resetStep === 2}
-                                />
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                    Email Address
+                                    {mode === 'signup' && verifyStatus === 'verified' && <span className="text-green-500 ml-2">✓ Verified</span>}
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="email"
+                                        placeholder="name@example.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className={`w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors placeholder:text-slate-600 ${mode === 'signup' && (verifyStatus === 'verified' || verifyStatus === 'pending') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        required={mode !== 'forgot' || resetStep === 1}
+                                        disabled={(mode === 'forgot' && resetStep === 2) || (mode === 'signup' && (verifyStatus === 'verified' || verifyStatus === 'pending'))}
+                                    />
+                                    {mode === 'signup' && verifyStatus === 'idle' && (
+                                        <button
+                                            type="button"
+                                            onClick={sendVerificationOtp}
+                                            className="bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-lg font-medium transition-colors text-sm border border-slate-700 whitespace-nowrap"
+                                        >
+                                            Verify
+                                        </button>
+                                    )}
+                                </div>
+                                {/* Verification OTP Input for Signup */}
+                                {mode === 'signup' && verifyStatus === 'pending' && (
+                                    <div className="flex gap-2 mt-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter OTP"
+                                            value={verificationOtp}
+                                            onChange={(e) => setVerificationOtp(e.target.value)}
+                                            className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-sky-500 text-center tracking-widest"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={verifyEmailOtp}
+                                            className="bg-green-600 hover:bg-green-500 text-white px-4 rounded-lg font-medium transition-colors text-sm"
+                                        >
+                                            Confirm
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setVerifyStatus('idle')}
+                                            className="bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 rounded-lg font-medium transition-colors text-sm"
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -435,9 +523,9 @@ export default function AuthPage({ onBack, onComplete, initialMode = 'login' }) 
                         )}
 
                         <button
-                            disabled={loading || (mode === 'signup' && (!agreed || password !== confirmPassword)) || (mode === 'forgot' && resetStep === 2 && newPassword !== confirmPassword)}
+                            disabled={loading || (mode === 'signup' && (!agreed || password !== confirmPassword || verifyStatus !== 'verified')) || (mode === 'forgot' && resetStep === 2 && newPassword !== confirmPassword)}
                             type="submit"
-                            className={`w-full font-bold py-3.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 transform active:scale-[0.98] ${(loading || (mode === 'signup' && (!agreed || password !== confirmPassword)) || (mode === 'forgot' && resetStep === 2 && newPassword !== confirmPassword))
+                            className={`w-full font-bold py-3.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 transform active:scale-[0.98] ${(loading || (mode === 'signup' && (!agreed || password !== confirmPassword || verifyStatus !== 'verified')) || (mode === 'forgot' && resetStep === 2 && newPassword !== confirmPassword))
                                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed hidden-spinner'
                                 : 'bg-gradient-to-r from-primary-500 to-primary-700 hover:from-primary-400 hover:to-primary-600 text-slate-900 shadow-primary-500/25 ring-1 ring-white/10'
                                 }`}

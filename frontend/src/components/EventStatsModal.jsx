@@ -1,20 +1,76 @@
+import React from 'react';
 import { X, TrendingUp, Users, Calendar, BarChart3, Clock, MapPin, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function EventStatsModal({ isOpen, onClose, event }) {
     if (!isOpen || !event) return null;
 
+    // Countdown Logic
+    const [timeLeft, setTimeLeft] = React.useState('');
+
+    React.useEffect(() => {
+        if (!event.start_time) return;
+
+        const timer = setInterval(() => {
+            const now = new Date().getTime();
+            const eventDate = new Date(event.start_time).getTime();
+            const distance = eventDate - now;
+
+            if (distance < 0) {
+                setTimeLeft("Event Started / Completed");
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+            setTimeLeft(`${days}d : ${hours}h : ${minutes}m`);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [event.start_time]);
+
     // Derived Stats (Mental Model: Premium Analytics Dashboard)
     const totalRegistrations = event.registration_count || 0;
     const capacity = event.raw_data?.capacity || 100;
     const fillRate = Math.round((totalRegistrations / capacity) * 100);
     const revenue = event.raw_data?.price ? event.raw_data.price * totalRegistrations : 0;
+    const recentSignups = event.recent_signup_count || 0;
 
-    // Mock Trend Data (To simulate professional analytics)
-    const recentActivity = [
-        { name: 'Last 24h', value: '+' + Math.floor(Math.random() * 5) },
-        { name: 'This Week', value: '+' + Math.floor(Math.random() * 20) },
-    ];
+    const handleDownloadCSV = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/v1/events/${event.id}/registrations/csv`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `event_${event.id}_registrations.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                // Try to get error message
+                try {
+                    const err = await res.json();
+                    alert(err.detail || "Failed to download CSV.");
+                } catch (e) {
+                    alert("Failed to download CSV. Check console.");
+                }
+            }
+        } catch (err) {
+            console.error("CSV Download Error:", err);
+            alert("Error downloading CSV.");
+        }
+    };
 
     return (
         <AnimatePresence>
@@ -91,14 +147,14 @@ export default function EventStatsModal({ isOpen, onClose, event }) {
                                 <div>
                                     <p className="text-slate-400 font-medium mb-1">Current Status</p>
                                     <h3 className="text-2xl font-bold text-white capitalize flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                                        <span className={`w-3 h-3 rounded-full animate-pulse ${event.status === 'InActive' ? 'bg-red-500' : 'bg-green-500'}`} />
                                         {event.status || 'Active'}
                                     </h3>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-slate-700/50">
                                     <p className="text-xs text-slate-500 mb-1">Time until event</p>
                                     <p className="text-white font-mono text-sm">
-                                        14d : 12h : 30m
+                                        {timeLeft || "Loading..."}
                                     </p>
                                 </div>
                             </div>
@@ -111,7 +167,7 @@ export default function EventStatsModal({ isOpen, onClose, event }) {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-400 uppercase font-bold">Recent Signups</p>
-                                        <p className="text-xl font-bold text-white">12 <span className="text-xs font-normal text-slate-500">last 24h</span></p>
+                                        <p className="text-xl font-bold text-white">{recentSignups} <span className="text-xs font-normal text-slate-500">last 24h</span></p>
                                     </div>
                                 </div>
                             </div>
@@ -135,7 +191,10 @@ export default function EventStatsModal({ isOpen, onClose, event }) {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-400 uppercase font-bold">Export Data</p>
-                                        <button className="text-sm text-primary-400 hover:text-primary-300 font-medium underline decoration-dashed underline-offset-4">
+                                        <button
+                                            onClick={handleDownloadCSV}
+                                            className="text-sm text-primary-400 hover:text-primary-300 font-medium underline decoration-dashed underline-offset-4"
+                                        >
                                             Download CSV
                                         </button>
                                     </div>

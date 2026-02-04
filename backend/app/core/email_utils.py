@@ -81,6 +81,43 @@ async def send_reset_email(email: EmailStr, otp: str):
         print(f"EXTREME ERROR: Failed to send email via SMTP: {e}")
         return False
 
+async def send_verification_email(email: EmailStr, otp: str):
+    """
+    Sends the verification OTP via Real SMTP.
+    """
+    if not ENABLE_EMAIL:
+        print(f"FAILED TO SEND EMAIL to {email}: Email credentials not configured.")
+        return False
+
+    print(f"Sending Verification OTP to {email} via {MAIL_SERVER}...")
+    try:
+        message = MessageSchema(
+            subject="Verify your email - Infinite BZ",
+            recipients=[email],
+            body=f"""
+            <html>
+                <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-w-md: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
+                        <h2 style="color: #333;">Email Verification</h2>
+                        <p>Welcome to Infinite BZ! Please verify your email address.</p>
+                        <p>Your verification code is:</p>
+                        <h1 style="color: #22c55e; font-size: 32px; letter-spacing: 5px;">{otp}</h1>
+                        <p>This code expires in 10 minutes.</p>
+                        <p style="font-size: 12px; color: #888;">If you didn't request this, please ignore this email.</p>
+                    </div>
+                </body>
+            </html>
+            """,
+            subtype=MessageType.html
+        )
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        print("Verification email sent successfully.")
+        return True
+    except Exception as e:
+        print(f"EXTREME ERROR: Failed to send email via SMTP: {e}")
+        return False
+
 async def send_ticket_email(email: EmailStr, name: str, event_title: str, event_id: int, ticket_id: str = ""):
     """
     Sends the Ticket Email via Real SMTP using fastapi-mail.

@@ -274,7 +274,7 @@ export default function MyEvents({ onCreateNew, onNavigate }) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-slate-300 font-mono text-sm">
-                                                {event.is_free ? 'Free' : `$${(event.raw_data?.price || 0) * (event.registration_count || 0)}`}
+                                                {event.is_free ? 'Free' : `₹${(event.raw_data?.price || 0) * (event.registration_count || 0)}`}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">

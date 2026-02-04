@@ -13,6 +13,9 @@ from app.auth import get_current_user
 from app.core.email_utils import generate_qr_code, send_event_ticket_email
 from sqlmodel import SQLModel
 import uuid
+import csv
+import io
+from fastapi.responses import StreamingResponse
 
 from app.api import ai_routes
 
@@ -138,7 +141,7 @@ async def create_event(
         **event_data.dict(exclude={"organizer_email", "price", "organizer_name", "agenda", "speakers", "tickets", "gallery_images", "capacity", "is_free"}), # Exclude non-db columns
         eventbrite_id=custom_id,
         url=f"https://infinitebz.com/events/{custom_id}",
-        organizer_name=event_data.organizer_name or current_user.full_name or "Community Member",
+        organizer_name=current_user.full_name or "Community Member",
         organizer_email=current_user.email,
         capacity=final_capacity,
         is_free=final_is_free,
@@ -293,18 +296,42 @@ async def get_my_events(
     total_registrations = 0
     
     # For each event, get registration count (this could be optimized with a join)
+    # For each event, get registration count (this could be optimized with a join)
     events_with_stats = []
+    
+    # Pre-calculate 24h cutoff
+    from datetime import datetime, timedelta
+    cutoff_24h = datetime.now() - timedelta(hours=24)
+    now_time = datetime.now()
+
     for event in my_events:
-        # Count registrations
+        # 1. Total Registrations
         reg_stmt = select(func.count()).select_from(UserRegistration).where(UserRegistration.event_id == event.id)
         reg_res = await session.execute(reg_stmt)
         reg_count = reg_res.scalar()
         total_registrations += reg_count
         
+        # 2. Recent Signups (Last 24h)
+        recent_stmt = select(func.count()).select_from(UserRegistration).where(
+            UserRegistration.event_id == event.id,
+            UserRegistration.registered_at >= cutoff_24h
+        )
+        recent_res = await session.execute(recent_stmt)
+        recent_count = recent_res.scalar()
+
+        # 3. Dynamic Status
+        # User Request: "Active when slot match not full, otherwise InActive"
+        capacity = event.raw_data.get('capacity') or 100 # Default if undefined
+        if reg_count < int(capacity):
+            event_status = "Active"
+        else:
+            event_status = "InActive"
+
         events_with_stats.append({
             **event.dict(),
             "registration_count": reg_count,
-            "status": "Active" # Hardcoded for now
+            "recent_signup_count": recent_count,
+            "status": event_status
         })
         
     return {
@@ -614,8 +641,10 @@ async def register_for_event(
 ):
     # 1. Get Event Details
     try:
-        with open("debug_email_identity.txt", "a") as f:
-             f.write(f"TIMESTAMP: {datetime.now()} | USER: {current_user.email}\n")
+        # Debug logging (optional, can be removed)
+        # with open("debug_email_identity.txt", "a") as f:
+        #      f.write(f"TIMESTAMP: {datetime.now()} | USER: {current_user.email}\n")
+        pass
     except:
         pass
 
@@ -655,11 +684,13 @@ async def register_for_event(
     await session.commit()
     
     # Check if Eventbrite/External
-    is_eventbrite = event.url and "eventbrite" in event.url.lower()
+    # Check if Internal Event (InfiniteBZ)
+    # User Request: Send mail for Infinite_BZ events only
+    is_internal = event.raw_data.get("source") == "InfiniteBZ"
     email_status = "SKIPPED_EXTERNAL"
     email_sent = False
 
-    if not is_eventbrite:
+    if is_internal:
         # --- NEW: Phase 1 Ticket Generation ---
         # --- NEW: Phase 1 Ticket Generation ---
         try:
@@ -707,7 +738,7 @@ async def register_for_event(
     message = "Registration verified and saved!"
     if email_sent:
         message += " Event ticket sent to your email."
-    elif is_eventbrite:
+    elif not is_internal:
          message += " (External Registration Recorded)"
     else:
         message += " (Note: Email sending is not configured.)"
@@ -718,6 +749,82 @@ async def register_for_event(
         "confirmation_id": confirmation_id,
         "email_status": email_status
     }
+
+@router.get("/events/{event_id}/registrations/csv")
+async def get_event_registrations_csv(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Export registrations for a specific event as CSV.
+    Only the organizer can access this.
+    """
+    # 1. Get Event and Verify Ownership
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check ownership
+    # We check raw_data['created_by'] which is set during event creation.
+    # Fallback to organizer_email check only if created_by is missing.
+    owner_email = event.raw_data.get("created_by") or event.raw_data.get("organizer_email")
+    
+    if not owner_email:
+        # If no explicit owner record, we deny access to be safe.
+        print(f"DEBUG: Event {event_id} has no created_by/organizer_email in raw_data")
+        raise HTTPException(status_code=403, detail="Could not verify event ownership (missing ownership record).")
+
+    if owner_email.lower() != current_user.email.lower():
+         raise HTTPException(status_code=403, detail="Only the event organizer can export registrations.")
+
+    # 2. Query Registrations with User Details
+    # Join UserRegistration with User to get profile info
+    stmt = (
+        select(UserRegistration, User)
+        .join(User, User.email == UserRegistration.user_email, isouter=True)
+        .where(UserRegistration.event_id == event_id)
+    )
+    result = await session.execute(stmt)
+    rows = result.all()
+
+    # 3. Generate CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow(["Registration ID", "Registered At", "Email", "Full Name", "Phone", "Job Title", "Company", "Status", "Ticket Class"])
+
+    for reg, user_profile in rows:
+        # Extract details
+        reg_id = reg.confirmation_id
+        reg_date = reg.registered_at.strftime("%Y-%m-%d %H:%M:%S")
+        email = reg.user_email
+        status = reg.status
+        ticket_class = reg.ticket_class_id or "Standard"
+
+        # User Profile details (if user exists in DB)
+        if user_profile:
+            full_name = user_profile.full_name or f"{user_profile.first_name or ''} {user_profile.last_name or ''}".strip()
+            phone = user_profile.phone or "N/A"
+            job_title = user_profile.job_title or "N/A"
+            company = user_profile.company or "N/A"
+        else:
+            # Fallback to registration raw_data if available
+            attendee_info = reg.raw_data.get("attendee", {})
+            full_name = attendee_info.get("name") or "Guest"
+            phone = "N/A" 
+            job_title = "N/A"
+            company = "N/A"
+
+        writer.writerow([reg_id, reg_date, email, full_name, phone, job_title, company, status, ticket_class])
+
+    output.seek(0)
+    
+    # 4. Return as File
+    response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
+    response.headers["Content-Disposition"] = f"attachment; filename=event_{event_id}_registrations.csv"
+    return response
 
 # --- 4.5 CHECK-IN ENDPOINT (Organizer Tool) ---
 class CheckInRequest(SQLModel):
@@ -962,8 +1069,10 @@ async def cancel_registration(
     if not registration:
         raise HTTPException(status_code=404, detail="Registration not found")
         
-    # 2. Delete the registration
-    await session.delete(registration)
+    # 2. Soft Delete the registration (Update Status)
+    # User Request: Track "cancel the order" activities
+    registration.status = "CANCELLED"
+    session.add(registration)
     await session.commit()
     
     return {"status": "success", "message": "Registration cancelled successfully"}
@@ -1307,6 +1416,105 @@ async def get_user_activities(
                 "venue": event.venue_name,
                 "event_image": event.image_url,
                 "status": "deleted"
+            })
+
+    # 6. Get Global Event Notifications (Events created by OTHER users)
+    # User Request: "if any event created... send to all the user notification page"
+    # We filter for events with source='InfiniteBZ' (user created) but NOT created by current_user
+    global_stmt = select(Event).where(
+        Event.raw_data.op("->>")("source") == "InfiniteBZ"
+    )
+    global_result = await session.execute(global_stmt)
+    global_events = global_result.scalars().all()
+
+    for event in global_events:
+        # Skip if created by current user (already covered in Step 1)
+        if event.raw_data.get("created_by") == current_user.email:
+            continue
+            
+        activities.append({
+            "type": "event_created", # Re-using type for consistent icon
+            "id": event.id,
+            "title": f"New Event: {event.title}",
+            "description": event.description,
+            "date": event.created_at,
+            "event_date": event.start_time,
+            "venue": event.venue_name,
+            "event_image": event.image_url,
+            "follower_image": None, # Could show organizer avatar if available
+            "subtitle": f"Created by {event.organizer_name or 'Unknown'}",
+            "status": "created_global"
+        })
+
+    # 7. Get user cancellations
+    # User Request: "cancel the order... activities"
+    cancel_stmt = select(UserRegistration).where(
+        UserRegistration.user_email == current_user.email,
+        UserRegistration.status == "CANCELLED"
+    ).options(selectinload(UserRegistration.event))
+    
+    cancel_result = await session.execute(cancel_stmt)
+    cancellations = cancel_result.scalars().all()
+    
+    for reg in cancellations:
+        if reg.event:
+            activities.append({
+                "type": "event_cancelled",
+                "id": reg.event.id,
+                "title": f"Registration Cancelled: {reg.event.title}",
+                "description": "You cancelled your registration.",
+                "date": reg.registered_at, # Optimally we'd have cancelled_at, but using registered_at for now or now()
+                "event_date": reg.event.start_time,
+                "venue": reg.event.venue_name,
+                "event_image": reg.event.image_url,
+                "status": "cancelled"
+            })
+
+    # 8. NLP-Based Recommendations
+    # User Request: "similar to that give the notification message" (NLP)
+    from app.services.recommendation_engine import recommend_events_nlp
+    from datetime import datetime
+
+    # 8a. Gather past successful events for profile building
+    past_events = []
+    registered_event_ids = set()
+    
+    for reg in registrations:
+        if reg.event:
+            past_events.append(reg.event)
+            registered_event_ids.add(reg.event.id)
+            
+    # Include cancelled in ID exclusion but NOT in profile building (user rejected them)
+    for reg in cancellations:
+        if reg.event:
+            registered_event_ids.add(reg.event.id)
+    
+    if past_events:
+        # 8b. Fetch all upcoming events the user hasn't interacted with
+        # We fetch broader candidate pool instead of just matching category
+        candidates_stmt = select(Event).where(
+            Event.start_time > datetime.now(),
+            Event.id.notin_(registered_event_ids)
+        )
+        candidates_result = await session.execute(candidates_stmt)
+        upcoming_candidates = candidates_result.scalars().all()
+        
+        # 8c. Run NLP Recommendation Engine
+        # recommended_items is a list of tuples: (event, score)
+        recommended_items = recommend_events_nlp(past_events, upcoming_candidates, threshold=0.1, limit=3)
+        
+        for event, score in recommended_items:
+            activities.append({
+                "type": "event_recommendation",
+                "id": event.id,
+                "title": f"Recommended: {event.title}",
+                "description": f"Based on your history (Match: {int(score*100)}%)",
+                "date": datetime.now(), 
+                "event_date": event.start_time,
+                "venue": event.venue_name,
+                "event_image": event.image_url,
+                "subtitle": f"Similar to events you attended",
+                "status": "recommendation"
             })
 
     # Sort activities by date (most recent first)

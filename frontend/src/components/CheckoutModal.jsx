@@ -6,8 +6,8 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
 
     const [step, setStep] = useState(1);
     const [tickets, setTickets] = useState(
-        event.raw_data?.tickets_meta?.map(t => ({ ...t, selectedQty: 0 })) ||
-        [{ name: 'General Admission', price: event.is_free ? 0 : 499, selectedQty: 0 }]
+        event.raw_data?.tickets_meta?.map(t => ({ ...t, selectedQty: event.is_free ? 1 : 0 })) ||
+        [{ name: 'General Admission', price: event.is_free ? 0 : 499, selectedQty: event.is_free ? 1 : 0 }]
     );
 
     // Attendee State
@@ -161,11 +161,6 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
                         <div className="h-0.5 w-8 bg-slate-800" />
                         <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary-500' : 'text-slate-600'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-primary-500 text-slate-900' : 'bg-slate-800'}`}>2</div>
-                            <span className="text-sm font-bold">Details</span>
-                        </div>
-                        <div className="h-0.5 w-8 bg-slate-800" />
-                        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-primary-500' : 'text-slate-600'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-primary-500 text-slate-900' : 'bg-slate-800'}`}>3</div>
                             <span className="text-sm font-bold">Payment</span>
                         </div>
                     </div>
@@ -184,7 +179,7 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
                                             <button
                                                 onClick={() => updateQty(idx, -1)}
                                                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-                                                disabled={t.selectedQty === 0}
+                                                disabled={t.selectedQty === 0 || event.is_free}
                                             >
                                                 <Minus size={16} />
                                             </button>
@@ -192,6 +187,7 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
                                             <button
                                                 onClick={() => updateQty(idx, 1)}
                                                 className="w-8 h-8 flex items-center justify-center text-primary-500 hover:bg-primary-500/20 rounded transition-colors"
+                                                disabled={event.is_free}
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -202,56 +198,8 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
                         </div>
                     )}
 
-                    {/* Step 2: Attendee Details */}
+                    {/* Step 2: Payment & Review (Was Step 3) */}
                     {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-400">First Name</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                        value={attendee.firstName}
-                                        onChange={e => setAttendee({ ...attendee, firstName: e.target.value })}
-                                        placeholder="John"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-400">Last Name</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                        value={attendee.lastName}
-                                        onChange={e => setAttendee({ ...attendee, lastName: e.target.value })}
-                                        placeholder="Doe"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-400">Email Address</label>
-                                <input
-                                    type="email"
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                    value={attendee.email}
-                                    onChange={e => setAttendee({ ...attendee, email: e.target.value })}
-                                    placeholder="john@example.com"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-400">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                                    value={attendee.phone}
-                                    onChange={e => setAttendee({ ...attendee, phone: e.target.value })}
-                                    placeholder="+91 98765 43210"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 3: Payment & Review */}
-                    {step === 3 && (
                         <div className="space-y-6">
                             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 space-y-4">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -301,13 +249,13 @@ export default function CheckoutModal({ event, isOpen, onClose, onConfirm }) {
 
                     <button
                         onClick={() => {
-                            if (step < 3) setStep(step + 1);
+                            if (step < 2) setStep(step + 1);
                             else handleConfirm();
                         }}
                         disabled={step === 1 && totalQty === 0 || isProcessing}
                         className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        {isProcessing ? 'Processing... ' : (step === 3 ? 'Pay & Register' : 'Continue')}
+                        {isProcessing ? 'Processing... ' : (step === 2 ? 'Pay & Register' : 'Continue')}
                         {!isProcessing && <ChevronRight size={18} />}
                     </button>
                 </div>
