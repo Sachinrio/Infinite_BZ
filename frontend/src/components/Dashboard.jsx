@@ -74,6 +74,7 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
             // or just to reset the spinner after a delay since it's a background task
             setTimeout(() => {
                 fetchEvents(currentPage, activeSearch, selectedCity, selectedCategory, selectedSource, selectedCost, selectedMode, selectedDate);
+                fetchUserActivities(); // Also refresh notifications
                 setIsRefreshing(false);
             }, 5000); // 5 seconds delay to allow some scraping to happen
 
@@ -100,6 +101,15 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
             setChatbotFilters({});
         }
     }, [chatbotFilters]);
+
+    // Poll for notifications every 30 seconds
+    useEffect(() => {
+        const pollInterval = setInterval(() => {
+            fetchUserActivities();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(pollInterval);
+    }, []);
 
     useEffect(() => {
         fetchEvents(currentPage, activeSearch, selectedCity, selectedCategory, selectedSource, selectedCost, selectedMode, selectedDate);
@@ -227,9 +237,11 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
 
     const [pendingEventId, setPendingEventId] = useState(null);
     const [pendingEventTitle, setPendingEventTitle] = useState("");
+    const [pendingEventUrl, setPendingEventUrl] = useState("");
     const [newlyRegisteredIds, setNewlyRegisteredIds] = useState([]);
     const [userRegistrations, setUserRegistrations] = useState([]);
     const [userRegistrationCount, setUserRegistrationCount] = useState(0);
+    const [refreshForMyEvents, setRefreshForMyEvents] = useState(0);
 
     const handleRegisterClick = (event) => {
         // CHECK SOURCE: If InfiniteBZ, open Detail Modal
@@ -239,12 +251,10 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
             return;
         }
 
-        // 1. Open URL in New Tab
-        window.open(event.url, '_blank');
-
-        // 2. Show Confirmation Modal
+        // 1. Show Confirmation Modal FIRST (User Request)
         setPendingEventId(event.id);
         setPendingEventTitle(event.title);
+        setPendingEventUrl(event.url);
         setShowConfirmModal(true);
     };
 
@@ -307,6 +317,7 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                 setShowCreateEventModal(false);
                 // Refresh list
                 fetchEvents(1, activeSearch, selectedCity, selectedCategory, selectedSource, selectedCost, selectedMode, selectedDate);
+                setRefreshForMyEvents(prev => prev + 1);
             } else {
                 alert(`Creation Failed: ${data.message || "Unknown error"}`);
             }
@@ -319,8 +330,18 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
     const confirmRegistration = async () => {
         if (!pendingEventId) return;
 
+        // 1. Immediately open the external URL (Synchronous to avoid popup blocker)
+        if (pendingEventUrl) {
+            window.open(pendingEventUrl, '_blank');
+        }
+
+        // 2. Optimistically update UI
+        setNewlyRegisteredIds(prev => [...prev, pendingEventId]);
+        setShowConfirmModal(false);
+
         try {
             const token = localStorage.getItem('token');
+            // 3. Perform background registration tracking
             const res = await fetch(`http://localhost:8000/api/v1/events/${pendingEventId}/register`, {
                 method: 'POST',
                 headers: {
@@ -329,31 +350,19 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                 },
                 body: JSON.stringify({})
             });
-            const data = await res.json();
 
-            if (res.ok && data.status === 'SUCCESS') {
-                // Registration successful - update UI state
-                setNewlyRegisteredIds(prev => [...prev, pendingEventId]);
-                alert('Registration confirmed successfully!');
-                // Close modal
-                setShowConfirmModal(false);
-                setPendingEventId(null);
-                setPendingEventTitle("");
-            } else if (data.status === 'ALREADY_REGISTERED') {
-                // Already registered - still update UI
-                setNewlyRegisteredIds(prev => [...prev, pendingEventId]);
-                alert('You are already registered for this event.');
-                // Close modal
-                setShowConfirmModal(false);
-                setPendingEventId(null);
-                setPendingEventTitle("");
-            } else {
-                // Registration failed - don't update UI
-                alert(`Registration failed: ${data.message || 'Unknown error'}`);
+            // Optional: Handle failure by reverting state or notifying user quietly
+            // For now, we assume success or ignore tracking failure to prioritize UX
+            if (!res.ok) {
+                console.error("Background registration tracking failed", res.status);
             }
         } catch (err) {
             console.error("Confirmation error", err);
-            alert('Registration confirmation failed. Please try again.');
+        } finally {
+            // Reset pending state
+            setPendingEventId(null);
+            setPendingEventTitle("");
+            setPendingEventUrl("");
         }
     };
 
@@ -403,7 +412,10 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
             {/* MAIN CONTENT */}
             <main className="flex-1 lg:ml-64 p-8">
                 {activeView === 'my-events' ? (
-                    <MyEvents onCreateNew={() => onNavigate('create-event')} />
+                    <MyEvents
+                        key={refreshForMyEvents}
+                        onCreateNew={() => setShowCreateEventModal(true)}
+                    />
                 ) : activeView === 'my-registrations' ? (
                     <MyRegistrationsPage
                         onNavigate={(view, data) => {
@@ -662,11 +674,11 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                                     </div>
 
                                     <h3 className="text-xl font-bold text-white text-center mb-2">
-                                        Did you register?
+                                        Register via External Site
                                     </h3>
                                     <p className="text-slate-400 text-center text-sm mb-8">
-                                        We opened <strong>{pendingEventTitle}</strong> in a new tab.
-                                        <br />If you completed the registration there, click "Yes" to track it here.
+                                        You are about to be redirected to <strong>{pendingEventTitle}</strong>.
+                                        <br />Click "Yes" to proceed with registration and track it here.
                                     </p>
 
                                     <div className="flex gap-3">
@@ -675,16 +687,17 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                                                 setShowConfirmModal(false);
                                                 setPendingEventId(null);
                                                 setPendingEventTitle("");
+                                                setPendingEventUrl("");
                                             }}
                                             className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all"
                                         >
-                                            No, not yet
+                                            Cancel
                                         </button>
                                         <button
                                             onClick={confirmRegistration}
                                             className="flex-1 py-3 bg-primary-500 hover:bg-primary-600 text-slate-900 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all"
                                         >
-                                            Yes, I registered
+                                            Yes, Proceed
                                         </button>
                                     </div>
                                 </div>
@@ -1162,12 +1175,12 @@ function EventCard({ event, onRegister, isRegistered, user, onNavigate }) {
     const handleClick = async () => {
         if (event.raw_data?.source === 'InfiniteBZ') {
             onRegister(); // Parent handles opening modal
-        } else if (event.is_free && event.url.includes("eventbrite")) {
+        } else {
+            // For ALL external events (Eventbrite, Meetup, AllEvents, etc.)
+            // Trigger the parent's handleRegisterClick to show confirmation modal
             setRegistering(true);
             await onRegister();
             setRegistering(false);
-        } else {
-            window.open(event.url, '_blank');
         }
     };
 

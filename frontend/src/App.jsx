@@ -62,11 +62,28 @@ export default function App() {
     }
   };
 
+  const calculateProfileCompleteness = (userData) => {
+    if (!userData) return 0;
+    const fields = [
+      userData.first_name,
+      userData.last_name,
+      userData.email,
+      userData.phone,
+      userData.job_title,
+      userData.company,
+      userData.profile_image
+    ];
+    // Check for non-empty strings. dependent on how backend returns nulls (usually null)
+    const filledFields = fields.filter(field => field && typeof field === 'string' && field.trim() !== '').length;
+    const totalFields = fields.length;
+    return Math.round((filledFields / totalFields) * 100);
+  };
+
   const checkUserSession = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
@@ -112,8 +129,11 @@ export default function App() {
             setCurrentView('dashboard');
           }
         }
+        return userData;
       } else {
         localStorage.removeItem('token');
+        setUser(null);
+        return null;
       }
     } catch (err) {
       console.error("Session check failed", err);
@@ -121,6 +141,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+    return null;
   };
 
   const handleLogout = () => {
@@ -181,8 +202,19 @@ export default function App() {
           }}
           onComplete={async () => {
             window.scrollTo(0, 0);
-            await checkUserSession(); // Refresh user state
-            setCurrentView('dashboard'); // Redirect to Dashboard
+            const userData = await checkUserSession(); // Refresh user state
+
+            if (userData) {
+              const completeness = calculateProfileCompleteness(userData);
+              console.log("Profile completeness:", completeness);
+              if (completeness >= 86) {
+                setCurrentView('dashboard');
+              } else {
+                setCurrentView('settings');
+              }
+            } else {
+              setCurrentView('landing');
+            }
           }}
         />
       )}
@@ -229,6 +261,8 @@ export default function App() {
       {currentView === 'settings' && (
         <SettingsPage
           user={user}
+          hideSidebar={user && calculateProfileCompleteness(user) < 86}
+          onProfileUpdate={checkUserSession}
           onNavigate={(view) => {
             window.scrollTo(0, 0);
             setCurrentView(view || 'dashboard');

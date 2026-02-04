@@ -115,7 +115,7 @@ export default function Step4_Tickets({ formData, updateFormData, onNext, onBack
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-400">PRICE</label>
                                 <div className="relative">
-                                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold ${draft.type === 'free' ? 'text-slate-600' : 'text-slate-400'}`}>$</span>
+                                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold ${draft.type === 'free' ? 'text-slate-600' : 'text-slate-400'}`}>₹</span>
                                     <input
                                         type="number"
                                         value={draft.price}
@@ -166,7 +166,7 @@ export default function Step4_Tickets({ formData, updateFormData, onNext, onBack
                                     <div>
                                         <h5 className="font-bold text-white leading-tight">{ticket.name}</h5>
                                         <p className="text-xs text-slate-400">
-                                            {ticket.quantity} available • {ticket.type === 'free' ? 'Free' : `$${ticket.price}`}
+                                            {ticket.quantity} available • {ticket.type === 'free' ? 'Free' : `₹${ticket.price}`}
                                         </p>
                                     </div>
                                 </div>

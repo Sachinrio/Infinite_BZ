@@ -314,8 +314,8 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
                     <div className="mt-3 mt-auto">
 
 
-                      {/* InfiniteBZ Ticket Button (and other locally registered events) */}
-                      {(!event.url || !event.url.toLowerCase().includes('eventbrite')) && (
+                      {/* InfiniteBZ Ticket Button (Internal Events) */}
+                      {event.raw_data?.source === 'InfiniteBZ' && (
                         <button
                           onClick={() => onNavigate('ticket-details', event)}
                           className="w-full mt-4 bg-primary-500 hover:bg-primary-600 text-slate-900 font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2"
@@ -325,13 +325,13 @@ export default function MyRegistrationsPage({ onNavigate, user }) {
                         </button>
                       )}
 
-                      {/* Eventbrite Source Button */}
-                      {event.url && event.url.toLowerCase().includes('eventbrite') && (
+                      {/* Official Source Button (External Events) */}
+                      {event.raw_data?.source !== 'InfiniteBZ' && event.url && (
                         <a
-                          href="https://www.eventbrite.com/"
+                          href={event.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full mt-4 bg-[#F05537] hover:bg-[#d04428] text-white font-bold py-2 px-4 rounded-lg text-center transition-colors flex items-center justify-center gap-2"
+                          className="block w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg text-center transition-colors flex items-center justify-center gap-2"
                         >
                           Go to official source
                         </a>
