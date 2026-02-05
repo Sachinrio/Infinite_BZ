@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 
 export default function Step6_Review({ formData, updateFormData, onSave, onBack }) {
     const [publishing, setPublishing] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     const handlePublish = async () => {
         setPublishing(true);
@@ -106,16 +107,58 @@ export default function Step6_Review({ formData, updateFormData, onSave, onBack 
                 <p className="text-slate-400">Double check everything before we go live.</p>
             </div>
 
+            {/* VALIDATION ALERTS */}
+            {(() => {
+                const warnings = [];
+                if (!formData.imageUrl) warnings.push("Cover Image is missing");
+                if (!formData.speakers || formData.speakers.length === 0) warnings.push("No Speakers added");
+                if (!formData.agendaItems || formData.agendaItems.length === 0) warnings.push("Agenda is empty");
+
+                if (warnings.length > 0) {
+                    return (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-4 animate-in fade-in zoom-in-95">
+                            <div className="text-amber-400 mt-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                            </div>
+                            <div>
+                                <h5 className="font-bold text-amber-200">Missing Information</h5>
+                                <ul className="list-disc list-inside text-sm text-amber-300/80 mt-1">
+                                    {warnings.map((w, i) => <li key={i}>{w}</li>)}
+                                </ul>
+                                <p className="text-xs text-amber-400/50 mt-2">You can publish anyway, but we recommend adding these details.</p>
+                            </div>
+                        </div>
+                    )
+                }
+                return null;
+            })()}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Event Card Preview */}
                 <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl group">
                     <div className="h-48 bg-black/40 relative">
+                        {/* Image Loading State */}
+                        {formData.imageUrl && (
+                            <div className={`absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10 transition-opacity duration-500 ${imageLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                <div className="text-center space-y-2">
+                                    <div className="animate-spin text-2xl">✨</div>
+                                    <p className="text-xs font-bold text-white animate-pulse">Painting Cover Art...</p>
+                                </div>
+                            </div>
+                        )}
+
                         {formData.imageUrl ? (
-                            <img src={formData.imageUrl} alt="Cover" className="w-full h-full object-cover" />
+                            <img
+                                src={formData.imageUrl}
+                                alt="Cover"
+                                className={`w-full h-full object-cover transition-opacity duration-700 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                onLoad={() => setImageLoaded(true)}
+                            />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-600">No Image</div>
                         )}
-                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
+
+                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 z-20">
                             {formData.category}
                         </div>
                     </div>
@@ -192,6 +235,6 @@ export default function Step6_Review({ formData, updateFormData, onSave, onBack 
             <div className="flex justify-start pt-8">
                 <button onClick={onBack} className="px-6 py-3 rounded-xl text-slate-400 hover:text-white font-bold transition-colors">Back to Venue</button>
             </div>
-        </div>
+        </div >
     );
 }
