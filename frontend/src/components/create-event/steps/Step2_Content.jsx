@@ -5,7 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Step2_Content({ formData, updateFormData, onNext, onBack }) {
     const [activeTab, setActiveTab] = useState('description'); // 'description' | 'agenda' | 'speakers' | 'cover'
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
     const [aiError, setAiError] = useState(null);
+
+    // Reset error when URL changes
+    useEffect(() => {
+        setImageError(false);
+        setImageLoaded(false);
+    }, [formData.imageUrl]);
 
     // --- AI GENERATION LOGIC ---
     const handleGenerate = async () => {
@@ -78,19 +87,12 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500 min-h-[600px] flex flex-col">
 
-            {/* HERADER & AI TRIGGER */}
+            {/* HERADER */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/10 pb-6">
                 <div>
                     <h3 className="text-3xl font-bold text-white">Event Content</h3>
                     <p className="text-slate-400">Manage your agenda, speakers, and details.</p>
                 </div>
-                <button
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 active:scale-95 transition-all text-white font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isGenerating ? <><span className="animate-spin">✨</span> Generating...</> : <><Sparkles size={18} /> AI Auto-Fill</>}
-                </button>
             </div>
 
             {/* TAB NAVIGATION */}
@@ -310,30 +312,124 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="h-full space-y-4"
+                            className="h-full space-y-4 overflow-y-auto pr-2 custom-scrollbar"
                         >
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cover Image</label>
+                            <div className="flex justify-between items-center">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cover Image</label>
+                                <span className="text-xs text-indigo-400 font-medium">Recommended: 1280x720px (16:9)</span>
+                            </div>
+
+                            {/* Preview Area */}
                             <div className="aspect-video bg-black/40 rounded-xl overflow-hidden relative border border-white/10 group">
-                                {formData.imageUrl ? (
-                                    <img
-                                        src={formData.imageUrl}
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover"
-                                    />
+                                {formData.imageUrl && !imageError ? (
+                                    <>
+                                        <img
+                                            key={formData.imageUrl}
+                                            src={formData.imageUrl}
+                                            alt="Cover Preview"
+                                            className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                            onLoad={() => setImageLoaded(true)}
+                                            onError={(e) => {
+                                                console.error("Image Load Error:", formData.imageUrl, e);
+                                                setImageLoaded(true);
+                                                setImageError(true);
+                                            }}
+                                        />
+                                        {!imageLoaded && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
+                                                <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                                <p className="text-xs text-indigo-300 font-medium animate-pulse">Painting your masterpiece...</p>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-600">No Image Set</div>
+                                    <div className="w-full h-full flex items-center justify-center text-slate-600 flex-col gap-2">
+                                        {imageError ? (
+                                            <>
+                                                <Trash2 size={32} className="text-red-500/50" />
+                                                <span className="text-red-400">Failed to load image</span>
+                                                <span className="text-[10px] text-slate-600 max-w-[200px] truncate">{formData.imageUrl}</span>
+                                                <button onClick={() => { setImageError(false); updateFormData({ imageUrl: '' }); }} className="text-xs hover:underline text-slate-400">Clear</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ImageIcon size={32} />
+                                                <span>No Image Set</span>
+                                            </>
+                                        )}
+                                    </div>
                                 )}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <p className="text-white text-sm font-bold">Preview Only</p>
+                            </div>
+
+                            {/* Manual URL Input */}
+                            <div className="space-y-2">
+                                <label className="text-xs text-slate-500">Image URL</label>
+                                <input
+                                    value={formData.imageUrl}
+                                    onChange={(e) => updateFormData({ imageUrl: e.target.value })}
+                                    placeholder="Paste Image URL..."
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
+                                />
+                            </div>
+
+                            <div className="relative py-2">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-white/10"></div>
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-[#1e1e24] px-2 text-slate-500">Or Upload Custom</span>
                                 </div>
                             </div>
-                            <input
-                                value={formData.imageUrl}
-                                onChange={(e) => updateFormData({ imageUrl: e.target.value })}
-                                placeholder="Paste Image URL..."
-                                className="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 outline-none"
-                            />
-                            <p className="text-xs text-slate-500">Pro Tip: Use Unsplash or Replicate for best results.</p>
+
+                            {/* File Upload Input */}
+                            <div className="space-y-2">
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/5 transition-all group relative overflow-hidden">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                                        {isUploading ? (
+                                            <div className="flex items-center gap-2 text-indigo-400">
+                                                <span className="animate-spin text-xl">◌</span>
+                                                <span className="text-sm font-medium">Uploading...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm text-slate-400 group-hover:text-white transition-colors"><span className="font-bold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                                <p className="text-xs text-slate-600">SVG, PNG, JPG (MAX. 5MB)</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        disabled={isUploading}
+                                        onChange={async (e) => {
+                                            const file = e.target.files[0];
+                                            if (!file) return;
+
+                                            setIsUploading(true);
+                                            try {
+                                                const uploadData = new FormData();
+                                                uploadData.append('file', file);
+
+                                                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/upload`, {
+                                                    method: 'POST',
+                                                    body: uploadData
+                                                });
+
+                                                if (!res.ok) throw new Error("Upload Failed");
+
+                                                const data = await res.json();
+                                                updateFormData({ imageUrl: data.url });
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Update failed: " + err.message);
+                                            } finally {
+                                                setIsUploading(false);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
                         </motion.div>
                     )}
 
@@ -350,9 +446,16 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
                 </button>
                 <button
                     onClick={onNext}
-                    className="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+                    disabled={isGenerating || (formData.imageUrl && !imageLoaded)}
+                    className="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2"
                 >
-                    Next Step <ChevronRight size={18} />
+                    {isGenerating ? (
+                        <><span className="animate-spin">◌</span> Generating...</>
+                    ) : (formData.imageUrl && !imageLoaded) ? (
+                        <><span className="animate-spin text-indigo-300">🖌️</span> Painting Image...</>
+                    ) : (
+                        <>Next Step <ChevronRight size={18} /></>
+                    )}
                 </button>
             </div>
         </div>

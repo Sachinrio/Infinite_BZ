@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 
 import ProgressBar from './ProgressBar';
+import Step0_ModeSelection from './steps/Step0_ModeSelection';
 import Step1_Essentials from './steps/Step1_Essentials';
 import Step2_Content from './steps/Step2_Content';
 import Step4_Tickets from './steps/Step4_Tickets';
 import Step5_Venue from './steps/Step5_Venue';
 import Step6_Review from './steps/Step6_Review';
+import Step10_AIWizard from './steps/Step10_AIWizard';
 
 const slideVariants = {
     enter: (direction) => ({
@@ -26,6 +28,7 @@ const slideVariants = {
     })
 };
 
+<<<<<<< HEAD
 import BankDetailsModal from './BankDetailsModal';
 
 export default function CreateEventModal({ isOpen, onClose, onSave, initialData = null, user }) {
@@ -37,6 +40,12 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
     const [isUserOnboarded, setIsUserOnboarded] = useState(!!user?.razorpay_account_id);
 
     const [formData, setFormData] = useState({
+=======
+export default function CreateEventModal({ isOpen, onClose, onSave, initialData = null }) {
+    const [step, setStep] = useState(0); // 0 = Mode Select
+    const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
+    const defaultState = {
+>>>>>>> c1d795d (feat: Add AI Event Creation Wizard with Pollinations Image Gen and Gemini Text; fix: cover image display and API key auth)
         title: "",
         category: "Conference",
         description: "",
@@ -46,9 +55,9 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
         endTime: "12:00",
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         imageUrl: "",
-        mode: "offline", // 'offline' | 'online'
+        mode: "offline",
         location: "",
-        venueCoordinates: { lat: 13.0827, lng: 80.2707 }, // Default Chennai
+        venueCoordinates: { lat: 13.0827, lng: 80.2707 },
         meetingLink: "",
         meetingLinkPrivate: true,
         agendaItems: [],
@@ -56,16 +65,29 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
         speakers: [],
         tags: [],
         audience: "General Public",
-        aiGenerated: false
-    });
+        aiGenerated: false,
+        price: "",
+        capacity: 100
+    };
+
+    const [formData, setFormData] = useState(defaultState);
 
     useEffect(() => {
         if (isOpen) {
+<<<<<<< HEAD
             setStep(1);
             // Reset form or load initialData
             if (initialData) setFormData(initialData);
             // Update onboard status from prop
             setIsUserOnboarded(!!user?.razorpay_account_id);
+=======
+            setStep(0);
+            if (initialData) {
+                setFormData(initialData);
+            } else {
+                setFormData(defaultState);
+            }
+>>>>>>> c1d795d (feat: Add AI Event Creation Wizard with Pollinations Image Gen and Gemini Text; fix: cover image display and API key auth)
         }
     }, [isOpen, initialData, user]);
 
@@ -103,7 +125,13 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
 
     const handleBack = () => {
         setDirection(-1);
-        setStep(prev => prev - 1);
+        if (step === 10) {
+            setStep(0); // AI Wizard Back -> Mode Select
+        } else if (step === 1) {
+            setStep(0); // Step 1 Back -> Mode Select
+        } else {
+            setStep(prev => prev - 1);
+        }
     };
 
     if (!isOpen) return null;
@@ -120,12 +148,14 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white tracking-tight">Create Event</h2>
-                            <p className="text-xs text-slate-400 font-medium">Wizard Mode</p>
+                            <p className="text-xs text-slate-400 font-medium">
+                                {step === 0 ? "Select Mode" : step === 10 ? "AI Wizard" : "Wizard Mode"}
+                            </p>
                         </div>
                     </div>
 
                     <div className="hidden md:block flex-1 max-w-2xl mx-12">
-                        <ProgressBar currentStep={step} totalSteps={5} />
+                        {step !== 0 && step !== 10 && <ProgressBar currentStep={step} totalSteps={5} />}
                     </div>
 
                     <button
@@ -137,9 +167,11 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
                 </div>
 
                 {/* Mobile Progress (Visible only on small screens) */}
-                <div className="md:hidden px-6 py-4 border-b border-white/5">
-                    <ProgressBar currentStep={step} totalSteps={5} />
-                </div>
+                {step !== 0 && step !== 10 && (
+                    <div className="md:hidden px-6 py-4 border-b border-white/5">
+                        <ProgressBar currentStep={step} totalSteps={5} />
+                    </div>
+                )}
 
                 {/* Main Content Area */}
                 <div className="flex-1 relative overflow-hidden bg-[#1a1a1a]">
@@ -155,6 +187,29 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
                             className="absolute inset-0 overflow-y-auto px-4 py-8 md:p-12 custom-scrollbar"
                         >
                             <div className="max-w-5xl mx-auto min-h-full pb-20">
+                                {step === 0 && (
+                                    <Step0_ModeSelection
+                                        onSelectMode={(mode) => {
+                                            setDirection(1);
+                                            if (mode === 'ai') setStep(10);
+                                            else setStep(1);
+                                        }}
+                                    />
+                                )}
+
+                                {/* AI WIZARD */}
+                                {step === 10 && (
+                                    <Step10_AIWizard
+                                        formData={formData}
+                                        updateFormData={updateFormData}
+                                        onNext={() => {
+                                            setDirection(1);
+                                            setStep(5); // Jump to Review
+                                        }}
+                                    />
+                                )}
+
+                                {/* MANUAL FLOW */}
                                 {step === 1 && <Step1_Essentials formData={formData} updateFormData={updateFormData} onNext={handleNext} />}
                                 {step === 2 && <Step2_Content formData={formData} updateFormData={updateFormData} onNext={handleNext} onBack={handleBack} />}
                                 {step === 3 && <Step4_Tickets formData={formData} updateFormData={updateFormData} onNext={handleNext} onBack={handleBack} />}
