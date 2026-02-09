@@ -28,24 +28,17 @@ const slideVariants = {
     })
 };
 
-<<<<<<< HEAD
 import BankDetailsModal from './BankDetailsModal';
 
 export default function CreateEventModal({ isOpen, onClose, onSave, initialData = null, user }) {
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(0); // 0 = Mode Select
     const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
 
     // Bank Onboarding State
     const [showBankModal, setShowBankModal] = useState(false);
     const [isUserOnboarded, setIsUserOnboarded] = useState(!!user?.razorpay_account_id);
 
-    const [formData, setFormData] = useState({
-=======
-export default function CreateEventModal({ isOpen, onClose, onSave, initialData = null }) {
-    const [step, setStep] = useState(0); // 0 = Mode Select
-    const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
     const defaultState = {
->>>>>>> c1d795d (feat: Add AI Event Creation Wizard with Pollinations Image Gen and Gemini Text; fix: cover image display and API key auth)
         title: "",
         category: "Conference",
         description: "",
@@ -57,6 +50,13 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
         imageUrl: "",
         mode: "offline",
         location: "",
+        venueName: "",
+        address1: "",
+        address2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "India",
         venueCoordinates: { lat: 13.0827, lng: 80.2707 },
         meetingLink: "",
         meetingLinkPrivate: true,
@@ -74,20 +74,14 @@ export default function CreateEventModal({ isOpen, onClose, onSave, initialData 
 
     useEffect(() => {
         if (isOpen) {
-<<<<<<< HEAD
-            setStep(1);
-            // Reset form or load initialData
-            if (initialData) setFormData(initialData);
-            // Update onboard status from prop
-            setIsUserOnboarded(!!user?.razorpay_account_id);
-=======
             setStep(0);
             if (initialData) {
                 setFormData(initialData);
             } else {
                 setFormData(defaultState);
             }
->>>>>>> c1d795d (feat: Add AI Event Creation Wizard with Pollinations Image Gen and Gemini Text; fix: cover image display and API key auth)
+            // Update onboard status from prop
+            setIsUserOnboarded(!!user?.razorpay_account_id);
         }
     }, [isOpen, initialData, user]);
 

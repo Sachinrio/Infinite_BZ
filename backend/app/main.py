@@ -127,6 +127,9 @@ app.include_router(scraper_router, prefix="/api/v1") # NEW Scraper Endpoints
 from app.api.payment_routes import router as payment_router
 app.include_router(payment_router, prefix="/api/v1")
 
+from app.api.contact import router as contact_router
+app.include_router(contact_router, prefix="/api/v1")
+
 
 # Mount uploads directory to serve images
 import os

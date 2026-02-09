@@ -109,8 +109,8 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
                         <tab.icon size={16} />
                         {tab.label}
                         {/* Optional Badges */}
-                        {tab.id === 'speakers' && formData.speakers.length > 0 &&
-                            <span className="bg-indigo-500 text-white text-[10px] px-1.5 rounded-full">{formData.speakers.length}</span>}
+                        {tab.id === 'speakers' && formData.speakers?.length > 0 &&
+                            <span className="bg-indigo-500 text-white text-[10px] px-1.5 rounded-full">{formData.speakers?.length}</span>}
                     </button>
                 ))}
             </div>
@@ -136,11 +136,11 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
                             className="space-y-4 h-full overflow-y-auto pr-2 custom-scrollbar"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h4 className="font-bold text-white">Timeline ({formData.agendaItems.length} Sessions)</h4>
-                                <button onClick={() => updateFormData({ agendaItems: [...formData.agendaItems, { id: Date.now(), startTime: "", endTime: "", title: "" }] })} className="text-indigo-400 text-xs font-bold hover:underline">+ Add Slot</button>
+                                <h4 className="font-bold text-white">Timeline ({formData.agendaItems?.length || 0} Sessions)</h4>
+                                <button onClick={() => updateFormData({ agendaItems: [...(formData.agendaItems || []), { id: Date.now(), startTime: "", endTime: "", title: "" }] })} className="text-indigo-400 text-xs font-bold hover:underline">+ Add Slot</button>
                             </div>
 
-                            {formData.agendaItems.length === 0 ? (
+                            {(!formData.agendaItems || formData.agendaItems.length === 0) ? (
                                 <div className="text-center py-10 text-slate-500">No sessions yet. Use AI or add manually.</div>
                             ) : (
                                 <div className="space-y-3">
@@ -191,8 +191,8 @@ export default function Step2_Content({ formData, updateFormData, onNext, onBack
                             className="space-y-4 h-full overflow-y-auto pr-2 custom-scrollbar"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h4 className="font-bold text-white">Speakers ({formData.speakers.length})</h4>
-                                <button onClick={() => updateFormData({ speakers: [...formData.speakers, { id: Date.now(), name: "", role: "", company: "" }] })} className="text-indigo-400 text-xs font-bold hover:underline">+ Add Speaker</button>
+                                <h4 className="font-bold text-white">Speakers ({formData.speakers?.length || 0})</h4>
+                                <button onClick={() => updateFormData({ speakers: [...(formData.speakers || []), { id: Date.now(), name: "", role: "", company: "" }] })} className="text-indigo-400 text-xs font-bold hover:underline">+ Add Speaker</button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

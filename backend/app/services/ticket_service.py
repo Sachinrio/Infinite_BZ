@@ -19,7 +19,7 @@ def generate_qr(data: str, filename: str) -> str:
     img.save(path)
     return path
 
-def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, user_email: str, event_date: datetime, event_location: str) -> str:
+def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, user_email: str, event_date: datetime, event_location: str, is_online: bool = False, event_url: str = None) -> str:
     """
     Generates a PDF ticket for the given registration details.
     Returns the absolute path to the generated PDF.
@@ -61,7 +61,27 @@ def generate_ticket_pdf(registration_id: str, event_title: str, user_name: str, 
     c.setFont("Helvetica", 12)
     c.drawString(0.5*inch, height - 3.5*inch, f"Attendee: {user_name}")
     c.drawString(0.5*inch, height - 3.8*inch, f"Date: {event_date.strftime('%B %d, %Y @ %I:%M %p')}")
-    c.drawString(0.5*inch, height - 4.1*inch, f"Location: {event_location}")
+    
+    # Wrap Location/Link Text
+    import textwrap
+    
+    if is_online:
+        location_label = "Event Link: "
+        location_text = event_url or "Link will be shared via email."
+    else:
+        location_label = "Location: "
+        location_text = event_location
+    
+    # Max chars per line approx (assuming size 12 font and 8.5inch width)
+    # Reducing width to 40 to leave safe space for QR Code on the right
+    wrapped_lines = textwrap.wrap(location_text, width=40) 
+    
+    y = height - 4.1*inch
+    c.drawString(0.5*inch, y, f"{location_label}{wrapped_lines[0]}")
+    
+    for line in wrapped_lines[1:]:
+        y -= 15 # shift down 15 points per line
+        c.drawString(0.5*inch + c.stringWidth(location_label), y, line)
     
     # 5. Ticket ID
     c.setFillColor(colors.gray)

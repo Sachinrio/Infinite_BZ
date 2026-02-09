@@ -307,7 +307,8 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
     const handleCreateEvent = async (eventData) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/v1/events', { // Standard create endpoint
+            const baseUrl = import.meta.env.VITE_API_URL || '';
+            const res = await fetch(`${baseUrl}/api/v1/events`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -315,6 +316,7 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                 },
                 body: JSON.stringify(eventData)
             });
+
             const data = await res.json();
 
             if (res.ok) {
@@ -324,11 +326,12 @@ export default function Dashboard({ user, onLogout, onNavigate, initialView, ini
                 fetchEvents(1, activeSearch, selectedCity, selectedCategory, selectedSource, selectedCost, selectedMode, selectedDate);
                 setRefreshForMyEvents(prev => prev + 1);
             } else {
-                alert(`Creation Failed: ${data.message || "Unknown error"}`);
+                console.error("Creation failed with status:", res.status, data);
+                alert(`Creation Failed: ${data.detail || data.message || "Unknown error"}`);
             }
         } catch (err) {
             console.error("Create event error", err);
-            alert("Failed to create event");
+            alert(`Failed to create event: ${err.message}`);
         }
     };
 

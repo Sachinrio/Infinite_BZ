@@ -15,14 +15,21 @@ export default function Step6_Review({ formData, updateFormData, onSave, onBack 
             const startDateTime = new Date(`${formData.startDate}T${formData.startTime}:00`);
             const endDateTime = new Date(`${formData.endDate || formData.startDate}T${formData.endTime}:00`);
 
+            // Construct Address
+            const fullAddress = formData.mode === 'offline'
+                ? [formData.address1, formData.address2, formData.city, formData.state, formData.postalCode, formData.country]
+                    .filter(Boolean)
+                    .join(", ")
+                : "Online";
+
             const payload = {
                 title: formData.title,
                 description: formData.description,
                 // Send as naive ISO string (strip Z) to avoid "offset-naive vs offset-aware" DB errors
                 start_time: startDateTime.toISOString().replace('Z', ''),
                 end_time: endDateTime.toISOString().replace('Z', ''),
-                venue_name: formData.mode === 'offline' ? formData.location : "Online Event",
-                venue_address: formData.mode === 'offline' ? formData.location : "Online",
+                venue_name: formData.mode === 'offline' ? formData.venueName : "Online Event",
+                venue_address: fullAddress,
                 image_url: formData.imageUrl,
                 category: formData.category,
                 is_free: formData.tickets.every(t => t.price === 0), // Calculate based on tickets
@@ -31,7 +38,7 @@ export default function Step6_Review({ formData, updateFormData, onSave, onBack 
                 meeting_link: formData.meetingLink,
                 meeting_link_private: formData.meetingLinkPrivate,
                 timezone: formData.timezone,
-                organizer_name: "Host", // Fallback
+                // organizer_name: "Host", // REMOVED: Let backend handle this from User Profile
 
                 // Nested JSON fields
                 agenda: formData.agendaItems,
@@ -186,7 +193,10 @@ export default function Step6_Review({ formData, updateFormData, onSave, onBack 
                             </div>
                             <div className="flex items-center gap-3">
                                 {formData.mode === 'offline' ? <MapPin size={16} className="text-indigo-400" /> : <Globe size={16} className="text-indigo-400" />}
-                                <span>{formData.mode === 'offline' ? formData.location : 'Online Event'}</span>
+                                <span>{formData.mode === 'offline'
+                                    ? [formData.venueName, formData.city, formData.country].filter(Boolean).join(", ")
+                                    : 'Online Event'}
+                                </span>
                             </div>
                         </div>
                     </div>

@@ -141,7 +141,13 @@ async def create_event(
         **event_data.dict(exclude={"organizer_email", "price", "organizer_name", "agenda", "speakers", "tickets", "gallery_images", "capacity", "is_free"}), # Exclude non-db columns
         eventbrite_id=custom_id,
         url=f"https://infinitebz.com/events/{custom_id}",
-        organizer_name=current_user.full_name or "Community Member",
+        # Prioritize Paylod > User Profile > Email Username > Default
+        organizer_name=(
+            event_data.organizer_name 
+            or current_user.full_name 
+            or current_user.email.split('@')[0] 
+            or "Community Member"
+        ),
         organizer_email=current_user.email,
         capacity=final_capacity,
         is_free=final_is_free,
@@ -705,6 +711,10 @@ async def register_for_event(
         # --- NEW: Phase 1 Ticket Generation ---
         # --- NEW: Phase 1 Ticket Generation ---
         try:
+            # Construct Full Location
+            location_parts = [p for p in [event.venue_name, event.venue_address] if p]
+            full_location = ", ".join(location_parts) or "Online"
+            
             # 1. Generate PDF
             ticket_path = generate_ticket_pdf(
                 registration_id=confirmation_id,
@@ -712,7 +722,9 @@ async def register_for_event(
                 user_name=current_user.full_name or current_user.email,
                 user_email=current_user.email,
                 event_date=event.start_time,
-                event_location=event.venue_name or "Online"
+                event_location=full_location,
+                is_online=event.online_event,
+                event_url=event.meeting_link or event.url
             )
             
             # 2. Send Email (BACKGROUND TASK)
@@ -1043,13 +1055,19 @@ async def download_ticket_pdf(
         
     # 3. Generate PDF (Regenerate on demand)
     try:
+        location_parts = [p for p in [event.venue_name, event.venue_address] if p]
+        full_location = ", ".join(location_parts) or "Online"
+        
+        # 1. Generate PDF
         ticket_path = generate_ticket_pdf(
             registration_id=registration.confirmation_id,
             event_title=event.title,
             user_name=current_user.full_name or current_user.email,
             user_email=current_user.email,
             event_date=event.start_time,
-            event_location=event.venue_name or "Online"
+            event_location=full_location,
+            is_online=event.online_event,
+            event_url=event.meeting_link or event.url
         )
         return FileResponse(ticket_path, media_type='application/pdf', filename=f"ticket_{event_id}.pdf")
     except Exception as e:

@@ -109,6 +109,7 @@ export default function Step10_AIWizard({ formData, updateFormData, onNext }) {
                         <div className="grid grid-cols-2 gap-4">
                             <input
                                 type="date"
+                                min={new Date().toISOString().split('T')[0]}
                                 value={formData.startDate}
                                 onChange={(e) => updateFormData({ startDate: e.target.value })}
                                 className="bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -126,6 +127,7 @@ export default function Step10_AIWizard({ formData, updateFormData, onNext }) {
                         <div className="grid grid-cols-2 gap-4">
                             <input
                                 type="date"
+                                min={new Date().toISOString().split('T')[0]}
                                 value={formData.endDate || formData.startDate}
                                 onChange={(e) => updateFormData({ endDate: e.target.value })}
                                 className="bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -163,21 +165,86 @@ export default function Step10_AIWizard({ formData, updateFormData, onNext }) {
 
                     {formData.mode === 'offline' ? (
                         <div className="space-y-4">
-                            <input
-                                placeholder="Venue Name (e.g. Convention Center)"
-                                value={formData.venueName || ""}
-                                onChange={(e) => updateFormData({ location: e.target.value, venueName: e.target.value })}
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Venue Name */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Venue Name <span className="text-red-400">*</span></label>
                                 <input
-                                    placeholder="Address"
+                                    placeholder="Venue Name"
+                                    value={formData.venueName || ""}
+                                    onChange={(e) => updateFormData({ venueName: e.target.value })}
                                     className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
-                                <input
-                                    placeholder="City"
+                            </div>
+
+                            {/* Address 1 & 2 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Address 1 <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="Address 1"
+                                        value={formData.address1 || ""}
+                                        onChange={(e) => updateFormData({ address1: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Address 2</label>
+                                    <input
+                                        placeholder="Address 2"
+                                        value={formData.address2 || ""}
+                                        onChange={(e) => updateFormData({ address2: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* City, State, Zip */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">City <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="City"
+                                        value={formData.city || ""}
+                                        onChange={(e) => updateFormData({ city: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">State/Province</label>
+                                    <input
+                                        placeholder="e.g. California"
+                                        value={formData.state || ""}
+                                        onChange={(e) => updateFormData({ state: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Postal Code <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="Postal Code"
+                                        value={formData.postalCode || ""}
+                                        onChange={(e) => updateFormData({ postalCode: e.target.value })}
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Country */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Country <span className="text-red-400">*</span></label>
+                                <select
+                                    value={formData.country || "India"}
+                                    onChange={(e) => updateFormData({ country: e.target.value })}
                                     className="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
+                                >
+                                    <option value="India">India</option>
+                                    <option value="USA">USA</option>
+                                    <option value="UK">UK</option>
+                                    <option value="Canada">Canada</option>
+                                    <option value="Australia">Australia</option>
+                                    <option value="Singapore">Singapore</option>
+                                    <option value="UAE">UAE</option>
+                                </select>
                             </div>
                         </div>
                     ) : (

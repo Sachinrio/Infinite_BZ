@@ -1,8 +1,68 @@
 import { useState } from 'react';
 import { ArrowRight, CheckCircle2, Calendar, Database, MousePointer2, ChevronDown, ChevronUp, Clock, MapPin, Mail, Phone, MessageSquare, ExternalLink, Search, Infinity } from 'lucide-react';
 
+const AnimatedText = ({ text, baseDelay = 0, className = "", useGradient = false }) => {
+    return (
+        <span className={className}>
+            {text.split('').map((char, i) => (
+                <span
+                    key={i}
+                    className="animate-letter"
+                    style={{ animationDelay: `${baseDelay + i * 0.03}s` }}
+                >
+                    <span className={useGradient ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-blue-600 to-emerald-500 animate-gradient-text' : ''}>
+                        {char === ' ' ? '\u00A0' : char}
+                    </span>
+                </span>
+            ))}
+        </span>
+    );
+};
+
+const FilterChip = ({ label, active }) => (
+    <button className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all btn-bounce border ${active ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500 hover:border-indigo-200 hover:text-indigo-600'}`}>
+        {label}
+    </button>
+);
+
 export default function LandingPage({ onNavigate, onLogin, onSignup, events, user }) {
-    const upcomingEvents = events.slice(0, 3);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [locationTerm, setLocationTerm] = useState('Chennai Central'); // Default location
+    const [selectedCategory, setSelectedCategory] = useState('');
+
+    // Filter events based on search, location, and category
+    const filteredEvents = events.filter(event => {
+        const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesLocation = locationTerm === '' || (event.venue_name && event.venue_name.toLowerCase().includes(locationTerm.toLowerCase())) ||
+            (event.venue_address && event.venue_address.toLowerCase().includes(locationTerm.toLowerCase())) ||
+            locationTerm === 'Chennai Central'; // Default matches all for now or specific logic
+        const matchesCategory = selectedCategory === '' || (event.title.toLowerCase().includes(selectedCategory.toLowerCase())); // Simple category matching via title for now
+
+        return matchesSearch && matchesLocation && matchesCategory;
+    });
+
+    // Determine what to show: 
+    // If searching/filtering, show all matches. 
+    // If no search, show top 3 upcoming.
+    const isSearching = searchTerm !== '' || selectedCategory !== '' || (locationTerm !== 'Chennai Central' && locationTerm !== '');
+    const eventsToDisplay = isSearching ? filteredEvents : events.slice(0, 3);
+
+    const handleExplore = () => {
+        const eventsSection = document.getElementById('events');
+        if (eventsSection) {
+            eventsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    const handleChipClick = (label) => {
+        if (selectedCategory === label) {
+            setSelectedCategory(''); // Toggle off
+        } else {
+            setSelectedCategory(label);
+            setSearchTerm(''); // Optional: clear text search when picking a category
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-primary-500/30">
@@ -48,52 +108,81 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                 </div>
             </nav>
 
-            <section className="pt-40 pb-20 px-6">
-                <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-                    <div className="max-w-2xl">
-                        <span className="inline-block py-1 px-3 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider mb-6 border border-white/20 shadow-sm">
-                            Chennai's Event Aggregator
-                        </span>
-                        <h1 className="text-5xl lg:text-7xl font-bold text-white leading-[1.1] mb-6 tracking-tight drop-shadow-sm">
-                            Chennai's <br />
-                            Networking Scene. <br />
-                            <span className="text-primary-400 drop-shadow-none">Unlocked.</span>
-                        </h1>
-                        <p className="text-lg text-white/80 mb-10 leading-relaxed max-w-lg">
-                            Stop checking 15 different sites. Join the unified community platform. Discover, join, and grow your network with auto-updates for free events.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <button
-                                onClick={onNavigate}
-                                className="bg-primary-500 hover:bg-primary-600 text-slate-900 font-bold px-8 py-4 rounded-xl transition-all shadow-lg shadow-primary-500/25 flex items-center justify-center gap-2"
-                            >
-                                Find Events Free
-                                <ArrowRight size={20} />
-                            </button>
-                            <button className="px-8 py-4 rounded-xl font-semibold text-white border border-white/30 hover:bg-white/10 transition-all">
-                                Request Feature
-                            </button>
+            <section className="relative pt-32 pb-24 overflow-hidden">
+                {/* Dynamic Background Elements - Animated */}
+                <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] floating-orb"></div>
+                <div className="absolute top-1/2 -right-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] floating-orb" style={{ animationDelay: '-5s' }}></div>
+                <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] floating-orb" style={{ animationDelay: '-8s' }}></div>
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="max-w-4xl mx-auto text-center mb-16">
+                        <div className="inline-flex items-center gap-3 bg-white shadow-xl border border-slate-100 px-5 py-2 rounded-full mb-8 transition-transform hover:scale-105 reveal">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
+                            <span className="text-slate-900 text-[10px] font-black uppercase tracking-[0.25em]">Chennai Professional Hub</span>
                         </div>
 
+                        <h1 className="text-5xl md:text-8xl font-black text-white mb-8 leading-[1.2] tracking-tight" style={{ perspective: '1200px' }}>
+                            <AnimatedText text="Discovery for the" baseDelay={0.2} className="block text-white" />
+                            <AnimatedText
+                                text="Infinite Minded."
+                                baseDelay={0.8}
+                                useGradient={true}
+                                className="block"
+                            />
+                        </h1>
 
+                        <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed reveal" style={{ animationDelay: '1.8s' }}>
+                            Unite with 12,000+ top-tier founders and investors. The definitive gateway to South India's business evolution.
+                        </p>
                     </div>
 
-                    <div className="relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-white rounded-2xl blur opacity-30"></div>
-                        <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-white/10 backdrop-blur-sm">
-                            <img
-                                src="https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2070&auto=format&fit=crop"
-                                alt="Conference Hall"
-                                className="w-full object-cover opacity-90"
-                            />
-
-                            <div className="absolute bottom-6 left-6 right-6 bg-slate-900/90 backdrop-blur-xl p-4 rounded-xl border border-white/10 flex items-center justify-between">
-                                <div>
-                                    <div className="text-xs text-primary-400 font-bold mb-1">NEXT UP</div>
-                                    <div className="text-white font-semibold">Tech Meetup @ IIT Madras</div>
+                    {/* Discovery Engine */}
+                    <div className="max-w-5xl mx-auto reveal" style={{ animationDelay: '2.2s' }}>
+                        <div className="glass-card p-2 rounded-[2.5rem] shadow-[0_32px_80px_-24px_rgba(79,70,229,0.15)] group transition-all duration-500 hover:shadow-[0_32px_80px_-16px_rgba(79,70,229,0.2)]">
+                            <div className="flex flex-col md:flex-row items-stretch gap-2">
+                                <div className="flex-1 flex flex-col justify-center px-8 py-4 border-r border-slate-100/10 last:border-0 hover:bg-slate-800/50 transition-colors rounded-3xl group/field">
+                                    <label className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest group-focus-within/field:text-indigo-600 transition-colors">Interest</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. SaaS, Fintech"
+                                        className="bg-transparent border-none p-0 focus:ring-0 text-white font-extrabold text-lg placeholder-slate-600 w-full"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
                                 </div>
-                                <button onClick={onNavigate} className="px-4 py-2 bg-primary-500 rounded-lg text-xs font-bold text-slate-900 hover:bg-primary-400">JOIN</button>
+
+                                <div className="flex-1 flex flex-col justify-center px-8 py-4 border-r border-slate-100/10 last:border-0 hover:bg-slate-800/50 transition-colors rounded-3xl group/field">
+                                    <label className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest group-focus-within/field:text-indigo-600 transition-colors">Location</label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 text-indigo-500 animate-bounce">
+                                            <MapPin strokeWidth={2.5} size={20} />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            defaultValue="Chennai Central"
+                                            value={locationTerm}
+                                            onChange={(e) => setLocationTerm(e.target.value)}
+                                            className="bg-transparent border-none p-0 focus:ring-0 text-white font-extrabold text-lg w-full"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button onClick={handleExplore} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-12 py-6 rounded-[1.8rem] transition-all btn-bounce shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 group">
+                                    Explore Hub
+                                    <ArrowRight className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                                </button>
                             </div>
+                        </div>
+
+                        <div className="mt-12 flex justify-center gap-4 flex-wrap reveal" style={{ animationDelay: '2.5s' }}>
+                            {['Founders Dinner', 'Investor Demo', 'Web3 Coffee', 'Growth Lab'].map((label) => (
+                                <div key={label} onClick={() => handleChipClick(label)}>
+                                    <FilterChip label={label} active={selectedCategory === label} />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -183,8 +272,12 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                 <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-end mb-12">
                         <div>
-                            <h2 className="text-3xl font-bold text-white mb-2">Upcoming in Chennai</h2>
-                            <p className="text-slate-400">Don't miss out on these popular events.</p>
+                            <h2 className="text-3xl font-bold text-white mb-2">
+                                {isSearching ? `Found ${eventsToDisplay.length} Matches` : 'Upcoming in Chennai'}
+                            </h2>
+                            <p className="text-slate-400">
+                                {isSearching ? 'Events matching your search criteria.' : "Don't miss out on these popular events."}
+                            </p>
                         </div>
                         <button onClick={onNavigate} className="text-sky-400 font-semibold hover:text-sky-300 flex items-center gap-2">
                             View All Events <ArrowRight size={16} />
@@ -192,9 +285,8 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6">
-                        {events.length > 0 ? [...events]
+                        {eventsToDisplay.length > 0 ? eventsToDisplay
                             .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-                            .slice(0, 3)
                             .map(event => (
                                 <div key={event.id} className="group bg-slate-900 rounded-xl overflow-hidden border border-white/5 hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/10 transition-all hover:-translate-y-1">
                                     <div className="h-48 bg-slate-800 relative overflow-hidden">
@@ -237,7 +329,9 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                                     </div>
                                 </div>
                             )) : (
-                            <div className="col-span-3 text-center py-12 text-slate-500 animate-pulse">Loading events...</div>
+                            <div className="col-span-3 text-center py-12 text-slate-500">
+                                {isSearching ? 'No events found matching your criteria.' : 'Loading events...'}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -321,26 +415,61 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                     </div>
 
                     <div className="bg-slate-900 p-8 rounded-2xl border border-white/5">
-                        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                        <form className="space-y-4" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const btn = e.target.querySelector('button');
+                            const originalText = btn.innerText;
+                            btn.innerText = 'Sending...';
+                            btn.disabled = true;
+
+                            const formData = {
+                                first_name: e.target.first_name.value,
+                                last_name: e.target.last_name.value,
+                                email: e.target.email.value,
+                                message: e.target.message.value
+                            };
+
+                            try {
+                                const baseUrl = import.meta.env.VITE_API_URL || '';
+                                const res = await fetch(`${baseUrl}/api/v1/contact`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(formData)
+                                });
+
+                                if (res.ok) {
+                                    alert("Message sent! We'll get back to you soon.");
+                                    e.target.reset();
+                                } else {
+                                    throw new Error("Failed to send");
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert("Failed to send message. Please try again.");
+                            } finally {
+                                btn.innerText = originalText;
+                                btn.disabled = false;
+                            }
+                        }}>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-400">FIRST NAME</label>
-                                    <input type="text" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
+                                    <input name="first_name" required type="text" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-400">LAST NAME</label>
-                                    <input type="text" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
+                                    <input name="last_name" required type="text" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
                                 </div>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-slate-400">EMAIL</label>
-                                <input type="email" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
+                                <input name="email" required type="email" className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-slate-400">MESSAGE</label>
-                                <textarea rows={4} className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors"></textarea>
+                                <textarea name="message" required rows={4} className="w-full bg-[#0B1221] border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 transition-colors"></textarea>
                             </div>
-                            <button className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-lg transition-colors shadow-lg shadow-sky-500/20">
+                            <button className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-lg transition-colors shadow-lg shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Send Message
                             </button>
                         </form>

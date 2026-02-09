@@ -194,9 +194,7 @@ export default function MyEvents({ onCreateNew, onNavigate }) {
                         className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary-500 transition-colors"
                     />
                 </div>
-                <button className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-300 hover:text-white hover:border-slate-600 transition-colors flex items-center gap-2">
-                    <Filter size={20} /> <span className="hidden sm:inline">Filters</span>
-                </button>
+
             </div>
 
             {/* Events Table Container */}
@@ -247,7 +245,10 @@ export default function MyEvents({ onCreateNew, onNavigate }) {
                                                     <h4 className="font-bold text-white text-base group-hover:text-primary-400 transition-colors">{event.title}</h4>
                                                     <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
                                                         <span className="flex items-center gap-1"><Clock size={12} /> {new Date(event.start_time).toLocaleDateString()}</span>
-                                                        <span className="flex items-center gap-1"><MapPin size={12} /> {event.venue_name || 'Online'}</span>
+                                                        <span className="flex items-center gap-1">
+                                                            <MapPin size={12} />
+                                                            {event.venue_name || 'Online'}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>

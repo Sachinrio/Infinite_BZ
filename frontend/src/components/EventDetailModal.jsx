@@ -342,16 +342,7 @@ export default function EventDetailModal({ event, isOpen, onClose, onRegister, i
                                                 {event.description || "Join us for an immersive experience designed to connect, educate, and inspire. This event brings together the brightest minds in the industry."}
                                             </p>
 
-                                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {[
-                                                    "Networking sessions", "Expert Panels", "Q&A Rounds", "Certificate"
-                                                ].map((perk, i) => (
-                                                    <div key={i} className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl border border-white/5">
-                                                        <CheckCircle2 className="text-green-500" size={20} />
-                                                        <span className="text-slate-200 font-medium">{perk}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+
                                         </div>
                                     )}
 

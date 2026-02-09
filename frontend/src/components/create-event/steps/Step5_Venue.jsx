@@ -38,17 +38,89 @@ export default function Step5_Venue({ formData, updateFormData, onNext, onBack }
                 {formData.mode === 'offline' ? (
                     <>
                         <div className="flex-1 space-y-4 animate-in fade-in slide-in-from-top-4">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Venue Address</label>
-                            <div className="relative">
-                                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-                                <input
-                                    value={formData.location}
-                                    onChange={(e) => updateFormData({ location: e.target.value })}
-                                    placeholder="Search for a venue or enter address..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-lg"
-                                />
+
+                            {/* Venue Name */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Venue Name <span className="text-red-400">*</span></label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                    <input
+                                        value={formData.venueName || ""}
+                                        onChange={(e) => updateFormData({ venueName: e.target.value })}
+                                        placeholder="Venue Name (e.g. Convention Center)"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-lg"
+                                    />
+                                </div>
                             </div>
-                            <p className="text-xs text-slate-500 pl-1">We'll display a map to attendees based on this address.</p>
+
+                            {/* Address 1 & 2 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Address 1 <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="Address 1"
+                                        value={formData.address1 || ""}
+                                        onChange={(e) => updateFormData({ address1: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Address 2</label>
+                                    <input
+                                        placeholder="Address 2"
+                                        value={formData.address2 || ""}
+                                        onChange={(e) => updateFormData({ address2: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* City, State, Zip */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">City <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="City"
+                                        value={formData.city || ""}
+                                        onChange={(e) => updateFormData({ city: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">State</label>
+                                    <input
+                                        placeholder="e.g. CA"
+                                        value={formData.state || ""}
+                                        onChange={(e) => updateFormData({ state: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Zip <span className="text-red-400">*</span></label>
+                                    <input
+                                        placeholder="Zip Code"
+                                        value={formData.postalCode || ""}
+                                        onChange={(e) => updateFormData({ postalCode: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Country <span className="text-red-400">*</span></label>
+                                <select
+                                    value={formData.country || "India"}
+                                    onChange={(e) => updateFormData({ country: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                                >
+                                    <option value="India">India</option>
+                                    <option value="USA">USA</option>
+                                    <option value="UK">UK</option>
+                                    <option value="Canada">Canada</option>
+                                    <option value="Australia">Australia</option>
+                                </select>
+                            </div>
+
                         </div>
 
                         {/* MAP PREVIEW */}

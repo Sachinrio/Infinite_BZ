@@ -103,9 +103,7 @@ class AllEventsScraper(BaseScraper):
                         "url": link,
                         "venue_name": venue,
                         "image_url": event_image,
-                        # Normalize Link for ID generation (remove query params)
-                        clean_link = link.split('?')[0]
-                        "eventbrite_id": f"allevents-{hashlib.md5(clean_link.encode()).hexdigest()}",
+                        "eventbrite_id": f"allevents-{hashlib.md5(link.split('?')[0].encode()).hexdigest()}",
                         "is_free": False,
                         "category": "Business",
                         "raw_data": {"source": "allevents"}

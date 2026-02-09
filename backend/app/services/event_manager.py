@@ -86,7 +86,7 @@ async def run_full_scrape_cycle():
         await remove_outdated_events(session)
 
 # Import UserRegistration to handle foreign key cleanup
-from app.models.schemas import Event, UserRegistration
+from app.models.schemas import Event, UserRegistration, TicketClass
 
 # ... (Previous imports remain same) ...
 
@@ -101,7 +101,7 @@ async def remove_outdated_events(session: AsyncSession):
     """
     try:
         current_time = datetime.now()
-        print(f"CLEANUP: Removing events older than {current_time}...")
+        # print(f"CLEANUP: Checking for events older than {current_time}...")
         
         # 1. Select IDs of events to delete
         stmt_select = select(Event.id).where(Event.end_time < current_time)
@@ -109,7 +109,7 @@ async def remove_outdated_events(session: AsyncSession):
         event_ids = result_ids.scalars().all()
         
         if not event_ids:
-            print("CLEANUP: No old events found.")
+            # print("CLEANUP: No old events found.")
             return
 
         print(f"CLEANUP: Found {len(event_ids)} old events to delete.")
@@ -119,7 +119,12 @@ async def remove_outdated_events(session: AsyncSession):
         res_regs = await session.execute(stmt_del_regs)
         print(f"CLEANUP: Deleted {res_regs.rowcount} related registrations.")
 
-        # 3. Delete events
+        # 3. Delete related ticket classes
+        stmt_del_tickets = delete(TicketClass).where(TicketClass.event_id.in_(event_ids))
+        res_tickets = await session.execute(stmt_del_tickets)
+        print(f"CLEANUP: Deleted {res_tickets.rowcount} related ticket classes.")
+
+        # 4. Delete events
         stmt_del_events = delete(Event).where(Event.id.in_(event_ids))
         res_events = await session.execute(stmt_del_events)
         await session.commit()

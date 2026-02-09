@@ -40,3 +40,72 @@ body {
   background-color: rgba(34, 211, 238, 0.3);
   color: #ffffff;
 }
+
+/* Fix Date Picker Icon Visibility in Dark Mode */
+::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+/* --- Hero Animations & Utilities --- */
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(30px, -50px); }
+  66% { transform: translate(-20px, 20px); }
+}
+
+.floating-orb {
+  animation: float 20s infinite ease-in-out;
+}
+
+@keyframes letter-fade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-letter {
+  display: inline-block;
+  opacity: 0;
+  animation: letter-fade 0.5s cubic-bezier(0.2, 0.65, 0.3, 0.9) forwards;
+}
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-gradient-text {
+  background-size: 200% auto;
+  animation: gradient-x 4s linear infinite;
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  animation: reveal-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-bounce:hover {
+  transform: scale(1.05);
+}
+.btn-bounce:active {
+  transform: scale(0.95);
+}

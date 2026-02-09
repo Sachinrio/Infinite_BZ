@@ -22,24 +22,63 @@ class EventContent(BaseModel):
 
 class AIGeneratorService:
     def __init__(self):
-        # 1. Initialize Google Gemini (For Text)
+        # 1. Initialize LLMs
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
         self.google_model_name = os.getenv("GOOGLE_MODEL_NAME", "gemini-2.5-flash")
         
-        if not self.google_api_key:
-            print("WARNING: GOOGLE_API_KEY missing.")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.groq_model_name = "llama-3.3-70b-versatile"
+
+        self.llm_google = None
+        self.llm_groq = None
+
+        if self.google_api_key:
+            print(f"Initializing Gemini (Text) with model: {self.google_model_name}")
+            try:
+                self.llm_google = ChatGoogleGenerativeAI(
+                    temperature=0.7,
+                    google_api_key=self.google_api_key,
+                    model=self.google_model_name
+                )
+            except Exception as e:
+                print(f"Failed to initialize Gemini: {e}")
+
+        if self.groq_api_key:
+            print(f"Initializing Groq (Text) with model: {self.groq_model_name}")
+            try:
+                from langchain_groq import ChatGroq
+                self.llm_groq = ChatGroq(
+                    temperature=0.7,
+                    groq_api_key=self.groq_api_key,
+                    model_name=self.groq_model_name
+                )
+            except Exception as e:
+                 print(f"Failed to initialize Groq: {e}")
+
+        if not self.llm_google and not self.llm_groq:
+            print("WARNING: Neither GOOGLE_API_KEY nor GROQ_API_KEY working. AI features will be disabled.")
             
-        print(f"Initializing Gemini (Text) with model: {self.google_model_name}")
-        self.llm_text = ChatGoogleGenerativeAI(
-            temperature=0.7,
-            google_api_key=self.google_api_key,
-            model=self.google_model_name
-        )
+        # 2. Initialize EasyOCR for text detection (CNN)
+        print("Initializing EasyOCR (this may take a moment)...")
+        try:
+            import easyocr
+            # 'en' for English. gpu=False to be safe on standard servers, true if CUDA avail.
+            # Using CPU to avoid CUDA dependency hell for now unless user asked for GPU.
+            self.reader = easyocr.Reader(['en'], gpu=False) 
+            self.ocr_enabled = True
+        except ImportError:
+            print("EasyOCR not installed. Text filtering disabled.")
+            self.ocr_enabled = False
+        except Exception as e:
+            print(f"EasyOCR Init Failed: {e}")
+            self.ocr_enabled = False
+
         self.parser = JsonOutputParser(pydantic_object=EventContent)
 
     async def generate_event_content(self, title: str, category: str, start_time: str, end_time: str) -> dict:
         """
         Generates content using Google Gemini (Text) and Pollinations.ai (Image).
+        Falls back to Groq or Manual defaults if Quota is exceeded.
         """
         # Prompt Construction
         prompt = f"""
@@ -53,91 +92,167 @@ class AIGeneratorService:
         {self.parser.get_format_instructions()}
         
         Ensure description is 200-300 words, engaging, and uses plain text (no markdown headers).
-        Ensure the image_prompt is highly detailed, cinematic, and photorealistic.
+        Ensure the image_prompt is highly detailed, cinematic, and photorealistic. It MUST explicitly visualize the core subject of the event title: "{title}".
+        Example: If title is "AI Summit", prompt should include "futuristic robot, glowing neural networks". If "Yoga Class", then "peaceful park, people doing yoga".
         """
 
+        result = {}
+        success = False
+
+        # 1. Try Google Gemini
+        if self.llm_google:
+            try:
+                print(f"Generating Text with Gemini...")
+                chain = self.llm_google | self.parser
+                result = await chain.ainvoke(prompt)
+                success = True
+            except Exception as e:
+                error_msg = str(e)
+                print(f"Gemini Generation Failed: {error_msg}")
+                if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                    print("Gemini Quota Exceeded. Attempting fallback...")
+                else:
+                    print("Gemini error (non-quota). Attempting fallback...")
+
+        # 2. Try Groq (Fallback)
+        if not success and self.llm_groq:
+            try:
+                print(f"Generating Text with Groq (Fallback)...")
+                chain = self.llm_groq | self.parser
+                result = await chain.ainvoke(prompt)
+                success = True
+            except Exception as e:
+                 print(f"Groq Generation Failed: {e}")
+
+        # 3. Last Resort: Default Content
+        if not success:
+            print("All AI Generation failed or disabled. returning default content.")
+            result = {
+                "description": f"Join us for {title}! This event falls under the {category} category. (AI content generation unavailable, please edit description).",
+                "agenda": [
+                    {"time": start_time, "title": "Opening", "speaker": "Organizer"}
+                ],
+                "tags": ["Event", category],
+                "image_prompt": title # Keep title as prompt for search
+            }
+
+        # Post-processing (Common)
         try:
-            print(f"Generating Text with Google Gemini...")
-            
-            # Call Gemini
-            chain = self.llm_text | self.parser
-            result = await chain.ainvoke(prompt)
-            
-            # Post-processing
             if "description" in result:
                 result["description"] = self._clean_description(result["description"])
 
-            # Generate Image (Pollinations.ai -> Local File)
-            if "image_prompt" in result:
-                import urllib.parse
-                import random
-                import requests
-                import uuid
-                
-                seed = random.randint(1, 1000000)
-                # Enhance prompt slightly for Pollinations
-                base_prompt = result["image_prompt"][:200]
-                enhanced_prompt = base_prompt + ", cinematic lighting"
-                encoded_prompt = urllib.parse.quote(enhanced_prompt)
-                
-                pollinations_api_key = os.getenv("POLLINATIONS_API_KEY")
-                api_key_param = f"&api_key={pollinations_api_key}" if pollinations_api_key else ""
-                
-                # Use the direct image endpoint to avoid redirects
-                # Appending .png to the prompt (before query params) hints the format to Pollinations
-                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}.png?width=1280&height=720&model=flux&nologo=true&seed={seed}{api_key_param}"
-                print(f"Fetching Image from: {pollinations_url}")
-                
-                try:
-                    # Download image server-side with User-Agent to avoid blocking
-                    headers = {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                    }
-
-                    img_response = requests.get(pollinations_url, headers=headers, timeout=30)
-                    
-                    if img_response.status_code == 200 and "image" in img_response.headers.get("Content-Type", ""):
-                        filename = f"ai_gen_{uuid.uuid4()}.png"
-                        file_path = os.path.join(os.getcwd(), "uploads", filename)
-                        
-                        # Ensure directory exists
-                        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                        
-                        with open(file_path, "wb") as f:
-                            f.write(img_response.content)
-                            
-                        result["imageUrl"] = f"http://localhost:8000/uploads/{filename}"
-                        print(f"Image saved locally: {result['imageUrl']}")
-                    else:
-                        print(f"Pollinations Download Failed or Invalid Content-Type: {img_response.status_code} {img_response.headers.get('Content-Type')}")
-                        # Fallback: Try Turbo if Flux fails
-                        if "model=flux" in pollinations_url:
-                             print("Retrying with Turbo model...")
-                             retry_url = pollinations_url.replace("model=flux", "model=turbo")
-                             img_response = requests.get(retry_url, headers=headers, timeout=30)
-                             if img_response.status_code == 200 and "image" in img_response.headers.get("Content-Type", ""):
-                                filename = f"ai_gen_{uuid.uuid4()}.png"
-                                file_path = os.path.join(os.getcwd(), "uploads", filename)
-                                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                                with open(file_path, "wb") as f:
-                                    f.write(img_response.content)
-                                result["imageUrl"] = f"http://localhost:8000/uploads/{filename}"
-                                print(f"Image saved locally (Turbo): {result['imageUrl']}")
-                             else:
-                                result["imageUrl"] = ""
+            # Generate Image (DuckDuckGo Search)
+            search_term = result.get("image_prompt", title)
+            
+            if search_term:
+                print(f"Searching for image using: {search_term}")
+                image_url = self._search_image(search_term)
+                if image_url:
+                    result["imageUrl"] = image_url
+                    print(f"Image found: {result['imageUrl']}")
+                else:
+                    # Fallback to title if detailed prompt finds nothing
+                    if search_term != title:
+                        print(f"No image found for prompt, retrying with title: {title}")
+                        image_url = self._search_image(title)
+                        if image_url:
+                            result["imageUrl"] = image_url
                         else:
                              result["imageUrl"] = ""
-                except Exception as dl_err:
-                    print(f"Image Download Verification Failed: {dl_err}")
-                    result["imageUrl"] = ""
+                    else:
+                        result["imageUrl"] = ""
             else:
                 result["imageUrl"] = ""
 
             return result
 
         except Exception as e:
-            print(f"Error generating content: {e}")
-            raise e
+            print(f"Error in post-processing/image search: {e}")
+            # Even if image fails, return the text content we hopefully have
+            return result
+
+    def _search_image(self, query: str) -> Optional[str]:
+        """
+        Searches DuckDuckGo for images.
+        Filters results using EasyOCR to prefer images WITHOUT text.
+        """
+        try:
+            from duckduckgo_search import DDGS
+            import requests
+
+            search_query = f"{query} stock photo photography wallpaper"
+            
+            with DDGS() as ddgs:
+                # Fetch more results to allow for filtering
+                results = list(ddgs.images(
+                    keywords=search_query,
+                    region="wt-wt",
+                    safesearch="on",
+                    max_results=8 
+                ))
+                
+                if not results:
+                    return None
+
+                print(f"Found {len(results)} candidate images. Filtering for text...")
+
+                # If OCR is disabled, just return the first one
+                if not self.ocr_enabled:
+                    return results[0]['image']
+
+                cleanest_image = None
+                
+                for res in results:
+                    img_url = res['image']
+                    if self._has_text(img_url):
+                        print(f"Skipping image (Text Detected): {img_url}")
+                    else:
+                        print(f"Clean image found: {img_url}")
+                        return img_url # Return first clean image
+                
+                # Fallback: If all have text, return the first one anyway
+                print("All images had text. Returning first result as fallback.")
+                return results[0]['image']
+
+        except ImportError:
+            print("duckduckgo_search not installed.")
+        except Exception as e:
+            print(f"Image Search Failed: {e}")
+            
+        return None
+
+    def _has_text(self, image_url: str) -> bool:
+        """
+        Downloads image and checks for text using EasyOCR.
+        Returns True if text is detected.
+        """
+        try:
+            import requests
+            
+            # Download image with timeout
+            response = requests.get(image_url, timeout=5)
+            if response.status_code != 200:
+                print(f"Failed to download image for OCR: {response.status_code}")
+                return True # Treat as "bad" to skip it
+            
+            image_bytes = response.content
+            
+            # Run OCR
+            # detail=0 returns just the text strings found
+            result = self.reader.readtext(image_bytes, detail=0)
+            
+            # If result list is not empty, text was found
+            if len(result) > 0:
+                print(f"Text detected: {result}")
+                return True
+            
+            return False
+
+        except Exception as e:
+            print(f"OCR check failed: {e}")
+            return True # conservative: if lookup fails, assume bad to skip
+
+
 
     def _clean_description(self, text: str) -> str:
         """Removes markdown headers."""
