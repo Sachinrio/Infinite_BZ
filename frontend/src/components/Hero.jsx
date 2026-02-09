@@ -22,7 +22,7 @@ const AnimatedText = ({ text, baseDelay = 0, className = "", useGradient = false
     );
 };
 
-export const Hero = () => {
+export const Hero = ({ events = [] }) => {
     return (
         <section className="relative pt-32 pb-24 overflow-hidden">
             <MouseSpotlight />
@@ -97,8 +97,8 @@ export const Hero = () => {
 
                 {/* Logo Marquee */}
                 <div className="mt-20 pt-8 border-t border-slate-100 reveal relative z-10" style={{ animationDelay: '2.5s' }}>
-                    <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Trusted by pioneers from</p>
-                    <LogoMarquee />
+                    <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Aggregated from Top Sources</p>
+                    <LogoMarquee events={events} />
                 </div>
             </div>
         </section>

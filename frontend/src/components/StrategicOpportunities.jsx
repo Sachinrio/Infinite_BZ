@@ -2,54 +2,25 @@
 import React, { useRef } from 'react';
 import { toPng } from 'https://esm.sh/html-to-image';
 
-const opportunities = [
-    {
-        id: '1',
-        title: "SaaS & GenAI Founders Summit",
-        matchScore: 98,
-        rating: 4.9,
-        location: "Park Hyatt, Guindy",
-        date: "JUL 12 • 10:00 AM",
-        attendees: 124,
-        image: "https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?q=80&w=2070&auto=format&fit=crop",
-        isTrending: true
-    },
-    {
-        id: '2',
-        title: "Venture Growth Lab Demo Day",
-        matchScore: 82,
-        rating: 4.7,
-        location: "IITM Research Park",
-        date: "AUG 05 • 06:30 PM",
-        attendees: 58,
-        image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2070&auto=format&fit=crop",
-        isTrending: true
-    },
-    {
-        id: '3',
-        title: "Web3 Engineering Dinner",
-        matchScore: 94,
-        rating: 4.8,
-        location: "The Residency, Alwarpet",
-        date: "SEP 10 • 08:00 PM",
-        attendees: 22,
-        image: "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?q=80&w=2070&auto=format&fit=crop",
-        isTrending: false
-    },
-    {
-        id: '4',
-        title: "B2B Scale Strategy Workshop",
-        matchScore: 76,
-        rating: 4.6,
-        location: "Adyar Garden Courtyard",
-        date: "SEP 15 • 02:00 PM",
-        attendees: 90,
-        image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop",
-        isTrending: false
-    }
-];
+export const StrategicOpportunities = ({ events = [] }) => {
+    // Map real events to opportunity format
+    const opportunities = (events || []).slice(0, 4).map(event => ({
+        id: event.id,
+        title: event.title,
+        // Mocking some matchmaking data for now as backend doesn't provide it yet
+        matchScore: 85 + Math.floor(Math.random() * 14),
+        rating: (4.5 + Math.random() * 0.4).toFixed(1),
+        location: event.venue_name || 'Chennai Hub',
+        date: new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        attendees: event.capacity || 100,
+        image: event.image_url || `https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?q=80&w=2070&auto=format&fit=crop`,
+        isTrending: (event.capacity || 0) > 100
+    }));
 
-export const StrategicOpportunities = () => {
+    if (opportunities.length === 0) {
+        return <div className="text-slate-500">No strategic matches found at the moment.</div>;
+    }
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
             {opportunities.map((opp, idx) => (

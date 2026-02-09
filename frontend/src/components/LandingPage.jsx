@@ -36,7 +36,7 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                 <Header onExport={exportPageAsPng} onLogin={onLogin} onSignup={onSignup} />
 
                 <main className="flex-grow">
-                    <Hero />
+                    <Hero events={events} />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
                         {/* Section Header: Categories */}
@@ -47,7 +47,7 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                                     <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">Browse Chennai's Core Hubs</h3>
                                 </div>
                             </div>
-                            <CategoriesGrid />
+                            <CategoriesGrid events={events} />
                         </div>
 
                         <div className="flex flex-col lg:flex-row gap-16 mt-24">
@@ -60,7 +60,7 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                                             <p className="text-slate-500 font-medium mt-1">Founders, capital, and talent tuned to your goals.</p>
                                         </div>
                                     </div>
-                                    <StrategicOpportunities />
+                                    <StrategicOpportunities events={events} />
                                 </section>
 
                                 <Testimonials />
@@ -78,9 +78,9 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                                             Hub Pulse
                                         </h3>
                                         <div className="space-y-6">
-                                            <PulseItem label="Founders Active" value="1,248" trend="+12" />
+                                            <PulseItem label="Founders Active" value={(events?.reduce((acc, e) => acc + (e.capacity || 50), 0) + 1200).toLocaleString()} trend="+12" />
                                             <PulseItem label="Open Grants" value="₹4.2 Cr" trend="New" isSpecial />
-                                            <PulseItem label="Meetup Nodes" value="24" trend="-2" />
+                                            <PulseItem label="Meetup Nodes" value={events?.length || 24} trend={events?.length > 20 ? "+5" : "+2"} />
                                         </div>
                                     </div>
 

@@ -1,15 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
-const categories = [
-    { id: '1', name: 'SaaS', eventCount: 42, icon: 'cloud' },
-    { id: '2', name: 'Invest', eventCount: 30, icon: 'trending-up' },
-    { id: '3', name: 'Founders', eventCount: 18, icon: 'users' },
-    { id: '4', name: 'Capital', eventCount: 25, icon: 'pie-chart' },
-    { id: '5', name: 'Web3', eventCount: 12, icon: 'cube' },
-    { id: '6', name: 'HR Tech', eventCount: 8, icon: 'user-group' },
-    { id: '7', name: 'Fintech', eventCount: 15, icon: 'credit-card' },
-];
+// Categories are now derived from props
 
 const TiltCard = ({ category, index }) => {
     const x = useMotionValue(0);
@@ -74,7 +66,55 @@ const TiltCard = ({ category, index }) => {
     );
 };
 
-export const CategoriesGrid = () => {
+const DEFAULT_CATEGORIES = [
+    { name: 'SaaS', eventCount: 42, icon: 'cloud' },
+    { name: 'Invest', eventCount: 30, icon: 'trending-up' },
+    { name: 'Founders', eventCount: 18, icon: 'users' },
+    { name: 'Capital', eventCount: 25, icon: 'pie-chart' },
+    { name: 'Web3', eventCount: 12, icon: 'cube' },
+    { name: 'HR Tech', eventCount: 8, icon: 'user-group' },
+    { name: 'Fintech', eventCount: 15, icon: 'credit-card' },
+];
+
+export const CategoriesGrid = ({ events = [] }) => {
+    // Derive categories from events, but keep defaults as baseline
+    const categories = React.useMemo(() => {
+        // 1. Create a map from defaults for easy lookup/update
+        const catMap = new Map();
+        DEFAULT_CATEGORIES.forEach(cat => {
+            catMap.set(cat.name.toLowerCase(), { ...cat });
+        });
+
+        // 2. Process real events
+        if (events && events.length > 0) {
+            events.forEach(event => {
+                const catName = event.category || 'Business';
+                const key = catName.toLowerCase();
+
+                // If exists (even as default), increment count. 
+                // Note: For defaults, we might want to just ADD to the mock count or replace it.
+                // Let's just increment to show "aliveness" on top of baseline.
+                if (catMap.has(key)) {
+                    const existing = catMap.get(key);
+                    existing.eventCount = (existing.eventCount || 0) + 1;
+                } else {
+                    // New category from DB
+                    catMap.set(key, {
+                        name: catName,
+                        eventCount: 1,
+                        icon: getIconForCategory(catName)
+                    });
+                }
+            });
+        }
+
+        // 3. Convert back to array
+        return Array.from(catMap.values()).map((cat, idx) => ({
+            ...cat,
+            id: idx // Ensure ID is index-based for list stability
+        }));
+    }, [events]);
+
     return (
         <div className="flex gap-8 overflow-x-auto no-scrollbar py-12 px-4 -mx-4 pb-20 perspective-2000">
             {categories.map((cat, idx) => (
@@ -82,6 +122,17 @@ export const CategoriesGrid = () => {
             ))}
         </div>
     );
+};
+
+const getIconForCategory = (category) => {
+    const lower = category.toLowerCase();
+    if (lower.includes('tech') || lower.includes('saas') || lower.includes('software')) return 'cloud';
+    if (lower.includes('invest') || lower.includes('finance') || lower.includes('capital')) return 'trending-up';
+    if (lower.includes('founder') || lower.includes('business') || lower.includes('startup')) return 'users';
+    if (lower.includes('marketing') || lower.includes('sales')) return 'pie-chart';
+    if (lower.includes('web3') || lower.includes('crypto')) return 'cube';
+    if (lower.includes('hr') || lower.includes('people')) return 'user-group';
+    return 'credit-card'; // Default
 };
 
 const CategoryIcon = ({ type }) => {
