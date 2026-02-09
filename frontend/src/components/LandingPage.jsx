@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, CheckCircle2, Calendar, Database, MousePointer2, ChevronDown, ChevronUp, Clock, MapPin, Mail, Phone, MessageSquare, ExternalLink, Search, Infinity } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Calendar, Database, MousePointer2, ChevronDown, ChevronUp, Clock, MapPin, Mail, Phone, MessageSquare, ExternalLink, Search, Infinity, Code, Cpu, Globe, Users, Zap, Briefcase } from 'lucide-react';
 
 const AnimatedText = ({ text, baseDelay = 0, className = "", useGradient = false }) => {
     return (
@@ -19,11 +19,30 @@ const AnimatedText = ({ text, baseDelay = 0, className = "", useGradient = false
     );
 };
 
-const FilterChip = ({ label, active }) => (
-    <button className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all btn-bounce border ${active ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500 hover:border-indigo-200 hover:text-indigo-600'}`}>
-        {label}
-    </button>
-);
+const CategoryCard = ({ icon: Icon, label, count, active, onClick }) => {
+    return (
+        <div
+            onClick={onClick}
+            className={`group relative p-6 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden
+                ${active
+                    ? 'bg-indigo-600/20 border-indigo-500/50 shadow-[0_0_30px_rgba(79,70,229,0.3)]'
+                    : 'bg-white/5 border-white/10 hover:border-cyan-400/30 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(34,211,238,0.1)]'
+                }`}
+        >
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+            <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl transition-colors duration-300 ${active ? 'bg-indigo-500 text-white' : 'bg-white/5 text-cyan-400 group-hover:text-cyan-300 group-hover:scale-110 transform transition-transform'}`}>
+                    <Icon size={28} strokeWidth={1.5} />
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold text-white tracking-wide uppercase">{label}</h3>
+                    <p className="text-xs text-slate-400 mt-1 font-medium">{count} Events</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function LandingPage({ onNavigate, onLogin, onSignup, events, user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +82,15 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
             setSearchTerm(''); // Optional: clear text search when picking a category
         }
     };
+
+    const categories = [
+        { label: 'Founders Dinner', icon: Users, count: 12 },
+        { label: 'Investor Demo', icon: Briefcase, count: 8 },
+        { label: 'Web3 Coffee', icon: Globe, count: 15 },
+        { label: 'Growth Lab', icon: Zap, count: 20 },
+        { label: 'Tech Workshops', icon: Code, count: 42 },
+        { label: 'AI Summits', icon: Cpu, count: 7 }
+    ];
 
     return (
         <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-primary-500/30">
@@ -177,11 +205,17 @@ export default function LandingPage({ onNavigate, onLogin, onSignup, events, use
                             </div>
                         </div>
 
-                        <div className="mt-12 flex justify-center gap-4 flex-wrap reveal" style={{ animationDelay: '2.5s' }}>
-                            {['Founders Dinner', 'Investor Demo', 'Web3 Coffee', 'Growth Lab'].map((label) => (
-                                <div key={label} onClick={() => handleChipClick(label)}>
-                                    <FilterChip label={label} active={selectedCategory === label} />
-                                </div>
+                        {/* Glass-Holo Category Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 perspective-1000 mt-16">
+                            {categories.map((cat, idx) => (
+                                <CategoryCard
+                                    key={idx}
+                                    icon={cat.icon}
+                                    label={cat.label}
+                                    count={cat.count}
+                                    active={selectedCategory === cat.label}
+                                    onClick={() => handleChipClick(cat.label)}
+                                />
                             ))}
                         </div>
                     </div>

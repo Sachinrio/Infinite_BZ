@@ -109,3 +109,41 @@ body {
 .btn-bounce:active {
   transform: scale(0.95);
 }
+
+/* --- Glass-Holo Category Grid Styles --- */
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.tilt-card {
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+/* Neon Border Effect */
+.neon-border {
+  position: relative;
+}
+
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(45deg, transparent, rgba(34, 211, 238, 0.3), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.2), inset 0 0 20px rgba(34, 211, 238, 0.05);
+  border-color: rgba(34, 211, 238, 0.4);
+}
